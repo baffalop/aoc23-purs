@@ -9,10 +9,12 @@ import Data.Map (Map)
 import Data.Map as Map
 import Data.Tuple (Tuple(Tuple))
 import Utils.Parsing as UP
-import Data.List.Types (List)
+import Data.List.Types (List(..))
 import Data.Either (Either)
 import Data.List as L
 import Data.Foldable as F
+import Data.Ord (max)
+import Control.Apply (lift2)
 
 type Game =
   { id :: Int
@@ -22,19 +24,24 @@ type Game =
 type Round = Map String Int
 
 solve1 s = parse s <#> (
-    L.filter (_.rounds >>> F.all (coloursBelow limits))
+    L.filter (_.rounds >>> F.all belowLimits)
     >>> map _.id
     >>> F.sum
   )
+  where
+    belowLimits :: Round -> Boolean
+    belowLimits colours = F.and $ (<=) <$> colours <*> limits
 
-coloursBelow :: Round -> Round -> Boolean
-coloursBelow limits colours = F.and $ (<=) <$> colours <*> limits
+    limits = Map.fromFoldable
+      [ Tuple "red" 12
+      , Tuple "green" 13
+      , Tuple "blue" 14
+    ]
 
-limits = Map.fromFoldable
-  [ Tuple "red" 12
-  , Tuple "green" 13
-  , Tuple "blue" 14
-  ]
+solve2 s = parse s <#> (
+    map (_.rounds >>> F.foldr (lift2 max) zero >>> F.product)
+    >>> F.sum
+  )
 
 parse :: String -> Either ParseError (List Game)
 parse s = runParser s $ UP.linesOf game
@@ -44,12 +51,17 @@ parse s = runParser s $ UP.linesOf game
       rounds <- P.string ": " *> round `sepBy` P.string "; "
       pure { id, rounds }
 
-    round = Map.fromFoldable <$> (cube `sepBy` P.string ", ")
+    round = do
+     cubes <- cube `sepBy` P.string ", "
+     pure $ Map.union (Map.fromFoldable cubes) zero
 
     cube = do
       n <- P.intDecimal
       colour <- P.string " " *> UP.word
       pure $ Tuple colour n
+
+zero :: Round
+zero = Map.fromFoldable $ map (\c -> Tuple c 0) ["red", "green", "blue"]
 
 example :: String
 example = """Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
