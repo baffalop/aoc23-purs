@@ -21,18 +21,15 @@ parse :: String -> Either ParseError (List Game)
 parse s = runParser s $ UP.linesOf game
   where
     game = do
-      _ <- P.string "Game "
-      id <- P.intDecimal
-      _ <- P.string ": "
-      rounds <- round `sepBy` P.string "; "
+      id <- P.string "Game " *> P.intDecimal
+      rounds <- P.string ": " *> round `sepBy` P.string "; "
       pure { id, rounds }
 
     round = Map.fromFoldable <$> (cube `sepBy` P.string ", ")
 
     cube = do
       n <- P.intDecimal
-      _ <- P.string " "
-      colour <- UP.word
+      colour <- P.string " " *> UP.word
       pure $ Tuple colour n
 
 example :: String
