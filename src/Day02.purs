@@ -6,10 +6,10 @@ import Parsing.Combinators (sepBy)
 import Parsing.String as P
 import Parsing.String.Basic as P
 import Data.Map as Map
-import Data.CodePoint.Unicode (isAlpha)
 import Data.Tuple (Tuple(Tuple))
+import Utils.Parsing as UP
 
-parse s = runParser s $ game `sepBy` P.char '\n'
+parse s = runParser s $ UP.linesOf game
   where
     game = do
       _ <- P.string "Game "
@@ -23,7 +23,7 @@ parse s = runParser s $ game `sepBy` P.char '\n'
     cube = do
       n <- P.intDecimal
       _ <- P.string " "
-      colour <- word
+      colour <- UP.word
       pure $ Tuple colour n
 
 example :: String
@@ -33,4 +33,3 @@ Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
 Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green"""
 
-word = P.takeWhile isAlpha
