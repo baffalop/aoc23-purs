@@ -12,12 +12,14 @@ import Parsing.Combinators.Array (many) as P
 import Data.Either (fromRight)
 import Parsing.String (anyTill, match, satisfy) as P
 import Parsing.String.Basic (intDecimal) as P
-import Data.Array (mapWithIndex)
+import Data.Array (filter, mapWithIndex)
 import Parsing (position) as P
 import Data.String as String
 import Data.CodePoint.Unicode (isNumber) as C
 import Data.String.CodePoints (codePointFromChar)
 import Data.Map.Internal (fromFoldable) as Map
+import Data.Maybe (isJust)
+import Data.Array (range) as Array
 
 newtype Schematic = Scheme
   { parts :: Array Part
@@ -46,6 +48,23 @@ instance Monoid Schematic where
     { parts: []
     , widgets: Map.empty
     }
+
+solve1 s =
+  let Scheme { parts, widgets } = parse s
+  in parts
+    # filter (neighbours >>> F.any (flip Map.lookup widgets >>> isJust))
+    # map _.n
+    # F.sum
+
+neighbours :: Part -> Array Coord
+neighbours { length, coord: { row, col } } =
+  [ { row, col: col - 1 }
+  , { row, col: col + length }
+  ]
+  <> map { row: row - 1, col: _ } cols
+  <> map { row: row + 1, col: _ } cols
+  where
+    cols = Array.range (col - 1) (col + length)
 
 parse :: String -> Schematic
 parse = fold <<< mapWithIndex parseLine <<< lines
@@ -86,7 +105,8 @@ example = """467..114..
 ...$.*....
 .664.598.."""
 
-input = """...................305.124................................432..............................................576..313.....514.................
+input = """
+...................305.124................................432..............................................576..313.....514.................
 .............113...-......&....................&...819...........654..../..........................&901................*....869.257.........
 ...377..&783../.................................9...........855*......940..463................-.........................844.*....@......679.
 ......*...........197.261.....817..336.759............&742......548.......&........748......844.............#.......&........254...169..*...
