@@ -15,6 +15,7 @@ import Data.List as L
 import Data.Foldable as F
 import Data.Ord (max)
 import Control.Apply (lift2)
+import Utils.Pointfree ((<<#>>))
 
 type Game =
   { id :: Int
@@ -23,11 +24,10 @@ type Game =
 
 type Round = Map String Int
 
-solve1 s = parse s <#> (
-    L.filter (_.rounds >>> F.all belowLimits)
-    >>> map _.id
-    >>> F.sum
-  )
+solve1 = parse
+  <<#>> L.filter (_.rounds >>> F.all belowLimits)
+  >>> map _.id
+  >>> F.sum
   where
     belowLimits :: Round -> Boolean
     belowLimits colours = F.and $ (<=) <$> colours <*> limits
@@ -38,10 +38,9 @@ solve1 s = parse s <#> (
       , Tuple "blue" 14
     ]
 
-solve2 s = parse s <#> (
-    map (_.rounds >>> F.foldr (lift2 max) zero >>> F.product)
-    >>> F.sum
-  )
+solve2 = parse
+  <<#>> map (_.rounds >>> F.foldr (lift2 max) zero >>> F.product)
+  >>> F.sum
 
 parse :: String -> Either ParseError (List Game)
 parse s = runParser s $ UP.linesOf game
