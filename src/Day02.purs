@@ -1,22 +1,31 @@
 module Day02 where
 
 import Prelude
-import Parsing (runParser)
+import Parsing (ParseError, runParser)
 import Parsing.Combinators (sepBy)
 import Parsing.String as P
 import Parsing.String.Basic as P
+import Data.Map (Map)
 import Data.Map as Map
 import Data.Tuple (Tuple(Tuple))
 import Utils.Parsing as UP
+import Data.List.Types (List)
+import Data.Either (Either)
 
+type Game =
+  { id :: Int
+  , rounds :: List (Map String Int)
+  }
+
+parse :: String -> Either ParseError (List Game)
 parse s = runParser s $ UP.linesOf game
   where
     game = do
       _ <- P.string "Game "
-      gameId <- P.intDecimal
+      id <- P.intDecimal
       _ <- P.string ": "
       rounds <- round `sepBy` P.string "; "
-      pure { gameId, rounds }
+      pure { id, rounds }
 
     round = Map.fromFoldable <$> (cube `sepBy` P.string ", ")
 
