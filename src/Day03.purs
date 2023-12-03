@@ -12,14 +12,14 @@ import Parsing.Combinators.Array (many) as P
 import Data.Either (fromRight)
 import Parsing.String (anyTill, match, satisfy) as P
 import Parsing.String.Basic (intDecimal) as P
-import Data.Array (filter, mapWithIndex)
+import Data.Array (filter, mapWithIndex, (..), (:))
 import Parsing (position) as P
 import Data.String as String
 import Data.CodePoint.Unicode (isNumber) as C
 import Data.String.CodePoints (codePointFromChar)
 import Data.Map.Internal (fromFoldable) as Map
-import Data.Maybe (isJust)
-import Data.Array (range) as Array
+import Data.Maybe (Maybe(Just), isJust)
+import Data.Array (length) as Array
 
 newtype Schematic = Scheme
   { parts :: Array Part
@@ -49,11 +49,29 @@ instance Monoid Schematic where
     , widgets: Map.empty
     }
 
+solve1 :: String -> Int
 solve1 s =
   let Scheme { parts, widgets } = parse s
   in parts
     # filter (neighbours >>> F.any (flip Map.lookup widgets >>> isJust))
     # map _.n
+    # F.sum
+
+solve2 :: String -> Int
+solve2 s =
+  let
+    Scheme { parts, widgets } = parse s
+    cogs = [] <$ Map.filter (_ == '*') widgets
+    allNeighbours = do
+      part@{ n } <- parts
+      { n, coord: _ } <$> neighbours part
+  in
+  F.foldr
+    (\{ n, coord } -> Map.update (Just <<< (n : _)) coord)
+    cogs
+    allNeighbours
+    # Map.filter (Array.length >>> (_ == 2))
+    <#> F.product
     # F.sum
 
 neighbours :: Part -> Array Coord
@@ -64,7 +82,7 @@ neighbours { length, coord: { row, col } } =
   <> map { row: row - 1, col: _ } cols
   <> map { row: row + 1, col: _ } cols
   where
-    cols = Array.range (col - 1) (col + length)
+    cols = (col - 1) .. (col + length)
 
 parse :: String -> Schematic
 parse = fold <<< mapWithIndex parseLine <<< lines
