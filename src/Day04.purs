@@ -5,11 +5,10 @@ import Parsing (ParseError, runParser)
 import Data.Set (Set)
 import Data.Either (Either)
 import Data.List (List)
-import Parsing.String (char, eof, string) as P
-import Parsing.String.Basic (intDecimal, skipSpaces, space) as P
-import Parsing.Combinators (many, many1Till, skipMany1) as P
+import Parsing.String (string) as P
+import Parsing.String.Basic (intDecimal, space) as P
+import Parsing.Combinators (many, sepEndBy, skipMany1) as P
 import Data.Set (fromFoldable, intersection, size) as Set
-import Control.Alt ((<|>))
 import Utils.Pointfree ((<<$>>))
 import Data.Int (pow)
 import Data.Foldable as F
@@ -60,13 +59,15 @@ winnings { winning, have } = Set.size $ Set.intersection winning have
 
 parse :: String -> Either ParseError (List Card)
 parse s = runParser s $ P.many do
-  id <- P.string "Card" *> P.skipSpaces *> P.intDecimal <* P.string ":"
-  winning <- numberSet $ unit <$ P.string " |"
-  have <- numberSet $ unit <$ P.char '\n' <|> P.eof
+  id <- P.string "Card" *> spaces *> P.intDecimal <* P.string ":"
+  winning <- numberSet
+  _ <- P.string "|"
+  have <- numberSet
   pure { id, winning, have }
   where
-    numberSet end =
-      Set.fromFoldable <$> P.many1Till (P.skipMany1 P.space *> P.intDecimal) end
+    numberSet =
+      spaces *> (Set.fromFoldable <$> P.intDecimal `P.sepEndBy` spaces)
+    spaces = P.skipMany1 P.space
 
 example = """Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
 Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19
