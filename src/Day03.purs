@@ -17,7 +17,6 @@ import Parsing (position) as P
 import Data.String as String
 import Data.CodePoint.Unicode (isNumber) as C
 import Data.String.CodePoints (codePointFromChar)
-import Data.Map.Internal (fromFoldable) as Map
 import Data.Maybe (Maybe(Just), isJust)
 import Data.Array (length) as Array
 
