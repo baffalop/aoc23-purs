@@ -17,6 +17,8 @@ to generate this file without the comments in this block.
   , "either"
   , "foldable-traversable"
   , "lists"
+  , "node-buffer"
+  , "node-fs"
   , "ordered-collections"
   , "parsing"
   , "prelude"
