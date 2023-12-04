@@ -9,11 +9,14 @@ import Parsing.String (char, eof, string) as P
 import Parsing.String.Basic (intDecimal, skipSpaces, space) as P
 import Parsing.Combinators (many, many1Till, skipMany1) as P
 import Data.Set (fromFoldable, intersection, size) as Set
-import Data.Foldable (class Foldable)
 import Control.Alt ((<|>))
 import Utils.Pointfree ((<<$>>))
 import Data.Int (pow)
-import Data.Foldable (sum) as F
+import Data.Foldable as F
+import Data.Map as Map
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Array ((..))
+import Data.List (length) as List
 
 type Card =
   { id :: Int
@@ -28,6 +31,28 @@ solve1 =
     score = case _ of
       0 -> 0
       n -> 2 `pow` (n - 1)
+
+solve2 :: String -> Either ParseError Int
+solve2 s = do
+  cards <- parse s
+  cards
+    # F.foldl
+        (\copiesBefore card@{ id } ->
+          let
+            copies = Map.insertWith (+) id 1 copiesBefore
+            count = fromMaybe 1 $ Map.lookup id copies
+            won = winnings card
+            toCopy = if won == 0 then [] else (id + 1) .. (id + won)
+          in
+          F.foldr
+            (\copyId -> Map.insertWith (+) copyId count)
+            copies
+            toCopy
+        )
+        Map.empty
+    # Map.submap Nothing (Just $ List.length cards)
+    # F.sum
+    # pure
 
 winnings :: Card -> Int
 winnings { winning, have } = Set.size $ Set.intersection winning have
