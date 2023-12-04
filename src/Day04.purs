@@ -11,7 +11,7 @@ import Parsing.Combinators (many, many1Till, skipMany1) as P
 import Data.Set (fromFoldable, intersection, size) as Set
 import Data.Foldable (class Foldable)
 import Control.Alt ((<|>))
-import Utils.Pointfree ((<<#>>))
+import Utils.Pointfree ((<<$>>))
 import Data.Int (pow)
 import Data.Foldable (sum) as F
 
@@ -22,13 +22,15 @@ type Card =
   }
 
 solve1 :: String -> Either ParseError Int
-solve1 = parse
-  <<#>> map (\{ winning, have } -> score $ Set.size $ Set.intersection winning have)
-  >>> F.sum
+solve1 =
+  F.sum <<< map (score <<< winnings) <<$>> parse
   where
     score = case _ of
       0 -> 0
       n -> 2 `pow` (n - 1)
+
+winnings :: Card -> Int
+winnings { winning, have } = Set.size $ Set.intersection winning have
 
 parse :: String -> Either ParseError (List Card)
 parse s = runParser s $ P.many do
