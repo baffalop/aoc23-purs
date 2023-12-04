@@ -6,14 +6,14 @@ import Data.Traversable (traverse)
 import Parsing (ParseError, runParser)
 import Parsing.Combinators.Array (many) as P
 import Parsing.String (anyTill) as P
-import Parsing.String.Basic (digit) as P
 import Data.Tuple (snd) as Tuple
 import Data.Either (Either)
+import Utils.Parsing (intDigit)
 
-parse :: String -> Either ParseError (Array (Array Char))
+parse :: String -> Either ParseError (Array (Array Int))
 parse = lines >>> traverse (flip runParser digits)
   where
-    digits = P.many $ Tuple.snd <$> P.anyTill P.digit
+    digits = P.many $ Tuple.snd <$> P.anyTill intDigit
 
 example1 = """1abc2
 pqr3stu8vwx
