@@ -14,6 +14,7 @@ import Data.Array as Array
 import Data.Foldable (sum) as F
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NA
+import Input (readInput)
 
 solve1 :: String -> Either ParseError Int
 solve1 = F.sum <<< map calibration <<$>> parse
@@ -37,3 +38,5 @@ xtwone3four
 4nineeightseven2
 zoneight234
 7pqrstsixteen"""
+
+input = readInput 1
