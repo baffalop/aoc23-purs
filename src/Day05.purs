@@ -4,7 +4,6 @@ import Prelude
 import Input (readInput)
 import Parsing (ParseError, parseErrorMessage, runParser)
 import Parsing.String (char, string) as P
-import Parsing.String.Basic (intDecimal) as P
 import Parsing.Combinators (sepBy, sepBy1, sepEndBy) as P
 import Data.List (List)
 import Data.List.NonEmpty (NonEmptyList)
@@ -12,16 +11,18 @@ import Data.List.NonEmpty as NL
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Either (Either(..))
-import Utils.Parsing (word) as P
+import Utils.Parsing (bigInt, word) as P
 import Data.Tuple (Tuple(Tuple))
 import Data.Traversable (traverse)
 import Data.Either (either, note) as Either
 import Data.Foldable as F
 import Data.Maybe (fromMaybe)
 import Data.Semigroup.Foldable (minimum) as NF
+import Data.BigInt (BigInt)
+import Data.BigInt as BigInt
 
 type Almanac =
-  { seeds :: NonEmptyList Int
+  { seeds :: NonEmptyList BigInt
   , mappings :: Map String Mapping
   }
 
@@ -31,9 +32,9 @@ type Mapping =
   }
 
 type Range =
-  { from :: Int
-  , to :: Int
-  , offset :: Int
+  { from :: BigInt
+  , to :: BigInt
+  , offset :: BigInt
   }
 
 solve1 s = do
@@ -42,7 +43,8 @@ solve1 s = do
     translate { kind, id } = do
       { kind, ranges } <- Either.note ("No mapping from: " <> kind) $ Map.lookup kind mappings
       let
-        offset = fromMaybe 0 $ _.offset <$> F.find (\{ from, to } -> id >= from && id <= to) ranges
+        offset = fromMaybe (BigInt.fromInt 0)
+          $ _.offset <$> F.find (\{ from, to } -> id >= from && id <= to) ranges
         translated = id + offset
       if kind == "location" then pure translated else translate { kind, id: translated }
 
@@ -50,7 +52,7 @@ solve1 s = do
 
 parse :: String -> Either ParseError Almanac
 parse = flip runParser do
-  seeds <- P.string "seeds: " *> P.intDecimal `P.sepBy1` P.char ' '
+  seeds <- P.string "seeds: " *> P.bigInt `P.sepBy1` P.char ' '
   _ <- P.string "\n\n"
   mappings <- Map.fromFoldable <$> mapping `P.sepBy` P.char '\n'
   pure { seeds, mappings }
@@ -63,10 +65,14 @@ parse = flip runParser do
       pure $ Tuple source { kind: destination, ranges }
 
     range = do
-      target <- P.intDecimal <* P.char ' '
-      from <- P.intDecimal <* P.char ' '
-      length <- P.intDecimal
-      pure { from, to: from + length - 1, offset: target - from }
+      target <- P.bigInt <* P.char ' '
+      from <- P.bigInt <* P.char ' '
+      length <- P.bigInt
+      pure
+        { from
+        , to: from + length - BigInt.fromInt 1
+        , offset: target - from
+        }
 
 mapLeft :: forall a b c. (a -> b) -> Either a c -> Either b c
 mapLeft f = Either.either (Left <<< f) (Right <<< identity)
