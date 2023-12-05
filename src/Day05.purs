@@ -20,6 +20,7 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Semigroup.Foldable (minimum) as NF
 import Data.BigInt (BigInt)
 import Data.BigInt as BigInt
+import Data.Bifunctor (lmap)
 
 type Almanac =
   { seeds :: NonEmptyList BigInt
@@ -43,7 +44,7 @@ type Range =
 
 solve1 :: String -> Either String BigInt
 solve1 s = do
-  { seeds, mappings } <- mapLeft parseErrorMessage $ parse s
+  { seeds, mappings } <- lmap parseErrorMessage $ parse s
   NF.minimum <$> traverse (translateWith mappings translate) seeds
   where
     translate translations id =
@@ -54,7 +55,7 @@ solve1 s = do
 
 solve2 :: String -> Either String BigInt
 solve2 s = do
-  { seeds, mappings } <- mapLeft parseErrorMessage $ parse s
+  { seeds, mappings } <- lmap parseErrorMessage $ parse s
   translated <- translateWith mappings translate $ toRanges $ NL.toList seeds
   Either.note "no seeds"
     $ F.minimum $ _.from <$> translated
@@ -129,9 +130,6 @@ maybeCons Nothing = identity
 maybeCons (Just x) = (x : _)
 
 infixr 6 maybeCons as ?:
-
-mapLeft :: forall a b c. (a -> b) -> Either a c -> Either b c
-mapLeft f = Either.either (Left <<< f) (Right <<< identity)
 
 example = """seeds: 79 14 55 13
 
