@@ -10,17 +10,18 @@ import Data.List.NonEmpty (NonEmptyList)
 import Data.List.NonEmpty as NL
 import Data.Map (Map)
 import Data.Map as Map
-import Data.Either (Either(..))
+import Data.Either (Either)
 import Utils.Parsing (bigInt, word) as P
 import Data.Tuple (Tuple(Tuple))
 import Data.Traversable (traverse)
-import Data.Either (either, note) as Either
+import Data.Either (note) as Either
 import Data.Foldable as F
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Semigroup.Foldable (minimum) as NF
 import Data.BigInt (BigInt)
 import Data.BigInt as BigInt
 import Data.Bifunctor (lmap)
+import Utils.List ((?:))
 
 type Almanac =
   { seeds :: NonEmptyList BigInt
@@ -124,12 +125,6 @@ rangeFrom start length =
   { from: start
   , to: start + length - BigInt.fromInt 1
   }
-
-maybeCons :: forall a. Maybe a -> List a -> List a
-maybeCons Nothing = identity
-maybeCons (Just x) = (x : _)
-
-infixr 6 maybeCons as ?:
 
 example = """seeds: 79 14 55 13
 
