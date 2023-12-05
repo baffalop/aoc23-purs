@@ -5,8 +5,10 @@ import Input (readInput)
 import Parsing (ParseError, parseErrorMessage, runParser)
 import Parsing.String (char, string) as P
 import Parsing.String.Basic (intDecimal) as P
-import Parsing.Combinators (sepBy, sepEndBy) as P
+import Parsing.Combinators (sepBy, sepBy1, sepEndBy) as P
 import Data.List (List)
+import Data.List.NonEmpty (NonEmptyList)
+import Data.List.NonEmpty as NL
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Either (Either(..))
@@ -16,9 +18,10 @@ import Data.Traversable (traverse)
 import Data.Either (either, note) as Either
 import Data.Foldable as F
 import Data.Maybe (fromMaybe)
+import Data.Semigroup.Foldable (minimum) as NF
 
 type Almanac =
-  { seeds :: List Int
+  { seeds :: NonEmptyList Int
   , mappings :: Map String Mapping
   }
 
@@ -43,11 +46,11 @@ solve1 s = do
         translated = id + offset
       if kind == "location" then pure translated else translate { kind, id: translated }
 
-  seeds # traverse (translate <<< { kind: "seed", id: _ })
+  NF.minimum <$> traverse (translate <<< { kind: "seed", id: _ }) seeds
 
 parse :: String -> Either ParseError Almanac
 parse = flip runParser do
-  seeds <- P.string "seeds: " *> P.intDecimal `P.sepBy` P.char ' '
+  seeds <- P.string "seeds: " *> P.intDecimal `P.sepBy1` P.char ' '
   _ <- P.string "\n\n"
   mappings <- Map.fromFoldable <$> mapping `P.sepBy` P.char '\n'
   pure { seeds, mappings }
@@ -60,10 +63,10 @@ parse = flip runParser do
       pure $ Tuple source { kind: destination, ranges }
 
     range = do
-      from <- P.intDecimal <* P.char ' '
       target <- P.intDecimal <* P.char ' '
+      from <- P.intDecimal <* P.char ' '
       length <- P.intDecimal
-      pure { from, to: from + length, offset: target - from }
+      pure { from, to: from + length - 1, offset: target - from }
 
 mapLeft :: forall a b c. (a -> b) -> Either a c -> Either b c
 mapLeft f = Either.either (Left <<< f) (Right <<< identity)
