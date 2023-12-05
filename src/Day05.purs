@@ -2,16 +2,20 @@ module Day05 where
 
 import Prelude
 import Input (readInput)
-import Parsing (ParseError, runParser)
+import Parsing (ParseError, parseErrorMessage, runParser)
 import Parsing.String (char, string) as P
 import Parsing.String.Basic (intDecimal) as P
 import Parsing.Combinators (sepBy, sepEndBy) as P
 import Data.List (List)
 import Data.Map (Map)
 import Data.Map as Map
-import Data.Either (Either)
+import Data.Either (Either(..))
 import Utils.Parsing (word) as P
 import Data.Tuple (Tuple(Tuple))
+import Data.Traversable (traverse)
+import Data.Either (either, note) as Either
+import Data.Foldable as F
+import Data.Maybe (fromMaybe)
 
 type Almanac =
   { seeds :: List Int
@@ -28,6 +32,18 @@ type Range =
   , to :: Int
   , offset :: Int
   }
+
+solve1 s = do
+  { seeds, mappings } <- mapLeft parseErrorMessage $ parse s
+  let
+    translate { kind, id } = do
+      { kind, ranges } <- Either.note ("No mapping from: " <> kind) $ Map.lookup kind mappings
+      let
+        offset = fromMaybe 0 $ _.offset <$> F.find (\{ from, to } -> id >= from && id <= to) ranges
+        translated = id + offset
+      if kind == "location" then pure translated else translate { kind, id: translated }
+
+  seeds # traverse (translate <<< { kind: "seed", id: _ })
 
 parse :: String -> Either ParseError Almanac
 parse = flip runParser do
@@ -48,6 +64,9 @@ parse = flip runParser do
       target <- P.intDecimal <* P.char ' '
       length <- P.intDecimal
       pure { from, to: from + length, offset: target - from }
+
+mapLeft :: forall a b c. (a -> b) -> Either a c -> Either b c
+mapLeft f = Either.either (Left <<< f) (Right <<< identity)
 
 example = """seeds: 79 14 55 13
 
