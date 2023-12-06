@@ -25,10 +25,10 @@ type Race =
 solve1 :: String -> Either ParseError BigInt
 solve1 = parse <<#>> map countMoves >>> F.product
   where
-    countMoves race@{ time } = time - (firstWinningMove race * BigInt.fromInt 2) + BigInt.fromInt 1
+    countMoves race@{ time } = time - (firstWinningMove race * two) + one
 
-    firstWinningMove { time, distance } = firstFrom $ BigInt.fromInt 1
-      where firstFrom n = if n * (time - n) > distance then n else firstFrom $ n + BigInt.fromInt 1
+    firstWinningMove { time, distance } = firstFrom one
+      where firstFrom n = if n * (time - n) > distance then n else firstFrom (n + one)
 
 solve2 :: String -> Either ParseError BigInt
 solve2 = String.replaceAll (Pattern " ") (Replacement "") >>> solve1
@@ -41,6 +41,9 @@ parse s = runParser s do
   pure $ List.zipWith { time: _, distance: _ } times distances
   where
     ints = P.bigInt `sepBy` P.spaces
+
+one = BigInt.fromInt 1
+two = BigInt.fromInt 2
 
 example = "Time:      7  15   30\nDistance:  9  40  200"
 
