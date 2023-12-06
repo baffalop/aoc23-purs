@@ -15,12 +15,16 @@ import Data.BigInt as BigInt
 import Parsing.Combinators.Array (many1)
 import Control.Alt ((<|>))
 import Data.Array.NonEmpty (toArray) as NA
+import Parsing.Combinators (skipMany1) as P
 
 linesOf :: forall a. Parser String a -> Parser String (List a)
 linesOf p = p `sepBy` char '\n'
 
 word :: Parser String String
 word = takeWhile isAlpha
+
+spaces :: Parser String Unit
+spaces = unit <$ P.skipMany1 (char ' ')
 
 intDigit :: Parser String Int
 intDigit = do
