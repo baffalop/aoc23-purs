@@ -6,8 +6,9 @@ import Data.Set (Set)
 import Data.Either (Either)
 import Data.List (List)
 import Parsing.String (string) as P
-import Parsing.String.Basic (intDecimal, space) as P
-import Parsing.Combinators (many, sepEndBy, skipMany1) as P
+import Parsing.String.Basic (intDecimal) as P
+import Parsing.Combinators (sepEndBy) as P
+import Utils.Parsing (linesOf, spaces) as P
 import Data.Set (fromFoldable, intersection, size) as Set
 import Utils.Pointfree ((<<$>>))
 import Data.Int (pow)
@@ -58,16 +59,14 @@ winnings :: Card -> Int
 winnings { winning, have } = Set.size $ Set.intersection winning have
 
 parse :: String -> Either ParseError (List Card)
-parse s = runParser s $ P.many do
-  id <- P.string "Card" *> spaces *> P.intDecimal <* P.string ":"
+parse s = runParser s $ P.linesOf do
+  id <- P.string "Card" *> P.spaces *> P.intDecimal <* P.string ":"
   winning <- numberSet
   _ <- P.string "|"
   have <- numberSet
   pure { id, winning, have }
   where
-    numberSet =
-      spaces *> (Set.fromFoldable <$> P.intDecimal `P.sepEndBy` spaces)
-    spaces = P.skipMany1 P.space
+    numberSet = P.spaces *> (Set.fromFoldable <$> P.intDecimal `P.sepEndBy` P.spaces)
 
 example = """Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
 Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19
