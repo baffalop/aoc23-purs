@@ -35,7 +35,6 @@ parse s = runParser s do
   where
     ints = P.intDecimal `sepBy` P.spaces
 
-example = """Time:      7  15   30
-Distance:  9  40  200"""
+example = "Time:      7  15   30\nDistance:  9  40  200"
 
 input = readInput 6
