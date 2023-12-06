@@ -8,8 +8,8 @@ pnpm i
 spago build
 ```
 
-I haven't bothered with a CLI/Main yet. To run solutions (eg. for day 5):
-```sh
+I haven't bothered with a CLI/Main yet. Run solutions in the repl, eg. for day 5:
+```
 $ spago repl
 > import Day05
 > solve1 example
