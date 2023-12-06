@@ -113,8 +113,8 @@ intersect range target =
     , to: min range.to target.to
     }
   , remainder:
-    validate range { to = min range.to $ target.from - BigInt.fromInt 1 }
-    ?: validate range { from = max range.from $ target.to + BigInt.fromInt 1 }
+    validate range { to = min range.to (target.from - one) }
+    ?: validate range { from = max range.from (target.to + one) }
     ?: Nil
   }
   where
@@ -125,6 +125,8 @@ rangeFrom start length =
   { from: start
   , to: start + length - BigInt.fromInt 1
   }
+
+one = BigInt.fromInt 1
 
 example = """seeds: 79 14 55 13
 
