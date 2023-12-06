@@ -57,21 +57,21 @@ solve1 s = do
 solve2 :: String -> Either String BigInt
 solve2 s = do
   { seeds, mappings } <- lmap parseErrorMessage $ parse s
-  translated <- translateWith mappings translate $ toRanges $ NL.toList seeds
+  translated <- translateWith mappings translateRanges $ toRanges $ NL.toList seeds
   Either.note "no seeds"
     $ F.minimum $ _.from <$> translated
   where
     toRanges (start : length : rest) = rangeFrom start length : toRanges rest
     toRanges _ = Nil
 
-    translate :: List Translation -> List Range -> List Range
-    translate translations ranges = ranges >>= translateBy translations
+    translateRanges :: List Translation -> List Range -> List Range
+    translateRanges translations ranges = ranges >>= translate translations
 
-    translateBy :: List Translation -> Range -> List Range
-    translateBy Nil range = range : Nil
-    translateBy ({ range: transRange, offset } : translations) range =
+    translate :: List Translation -> Range -> List Range
+    translate Nil range = range : Nil
+    translate ({ range: transRange, offset } : translations) range =
         let { within, remainder } = intersect range transRange
-        in (bump offset <$> within) ?: translate translations remainder
+        in (bump offset <$> within) ?: translateRanges translations remainder
 
     bump offset { from, to } = { from: from + offset, to: to + offset }
 
