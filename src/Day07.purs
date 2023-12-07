@@ -76,6 +76,12 @@ type Play =
   , bid :: Int
   }
 
+solve1 :: String -> Either ParseError Int
+solve1 = parse
+  <<#>> Array.sortWith (\{ hand } -> Tuple (score hand) hand)
+  >>> Array.mapWithIndex (\rank { bid } -> (rank + 1) * bid)
+  >>> F.sum
+
 solve2 :: String -> Either ParseError Int
 solve2 = parse
   <<#>> Array.sortWith (\{ hand } -> Tuple (scoreWithJoker hand) $ WithJoker <$> hand)
@@ -87,12 +93,6 @@ solve2 = parse
         { yes: jokers, no: rest } = Array.partition (_ == J) hand
         mostFrequent = fromMaybe J $ _.value <<$>> Map.findMax $ UM.invert $ UM.counts rest
       in score $ (mostFrequent <$ jokers) <> rest
-
-solve1 :: String -> Either ParseError Int
-solve1 = parse
-  <<#>> Array.sortWith (\{ hand } -> Tuple (score hand) hand)
-  >>> Array.mapWithIndex (\rank { bid } -> (rank + 1) * bid)
-  >>> F.sum
 
 score :: Array Card -> Score
 score hand = case Array.sort $ Array.fromFoldable $ UM.counts hand of
