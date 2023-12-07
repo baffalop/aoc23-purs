@@ -70,7 +70,7 @@ solve1 = parse
   where
     score hand = case Array.sort $ Array.fromFoldable $ counts hand of
       [5] -> FiveKind
-      [4, 1] -> FourKind
+      [1, 4] -> FourKind
       [2, 3] -> FullHouse
       [1, 1, 3] -> ThreeKind
       [1, 2, 2] -> TwoPair
