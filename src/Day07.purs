@@ -7,9 +7,15 @@ import Parsing.String (char) as P
 import Parsing.String.Basic (intDecimal) as P
 import Parsing.Combinators (choice, many1) as P
 import Data.Either (Either)
-import Data.List (List)
 import Data.List.NonEmpty (NonEmptyList)
 import Data.List.NonEmpty as NL
+import Utils.Pointfree ((<<#>>))
+import Data.Array as Array
+import Data.Tuple (Tuple(Tuple))
+import Utils.Map (counts)
+import Data.Tuple as Tuple
+import Data.Foldable (sum) as F
+import Input (readInput)
 
 data Card
   = N Int
@@ -22,19 +28,57 @@ data Card
 derive instance eqCard :: Eq Card
 derive instance ordCard :: Ord Card
 instance showCard :: Show Card where
-    show (N n) = show n
-    show T = "T"
-    show J = "J"
-    show Q = "Q"
-    show K = "K"
-    show A = "A"
+  show = case _ of
+    (N n) -> show n
+    T -> "T"
+    J -> "J"
+    Q -> "Q"
+    K -> "K"
+    A -> "A"
+
+data Score
+  = High
+  | Pair
+  | TwoPair
+  | ThreeKind
+  | FullHouse
+  | FourKind
+  | FiveKind
+
+derive instance eqScore :: Eq Score
+derive instance ordScore :: Ord Score
+
+instance showScore :: Show Score where
+  show = case _ of
+    High -> "High"
+    Pair -> "Pair"
+    TwoPair -> "TwoPair"
+    ThreeKind -> "ThreeKind"
+    FullHouse -> "FullHouse"
+    FourKind -> "FourKind"
+    FiveKind -> "FiveKind"
 
 type Play =
   { hand :: NonEmptyList Card
   , bid :: Int
   }
 
-parse :: String -> Either ParseError (List Play)
+solve1 :: String -> Either ParseError Int
+solve1 = parse
+  <<#>> Array.sortWith (\{ hand } -> Tuple (score hand) hand)
+  >>> Array.mapWithIndex (\rank { bid } -> (rank + 1) * bid)
+  >>> F.sum
+  where
+    score hand = case Array.sort $ Array.fromFoldable $ counts hand of
+      [5] -> FiveKind
+      [4, 1] -> FourKind
+      [2, 3] -> FullHouse
+      [1, 1, 3] -> ThreeKind
+      [1, 2, 2] -> TwoPair
+      [1, 1, 1, 2] -> Pair
+      _ -> High
+
+parse :: String -> Either ParseError (Array Play)
 parse s = runParser s $ P.linesOf $ { hand: _, bid: _ } <$> hand <* P.char ' ' <*> P.intDecimal
   where
     hand = P.many1 $ P.choice
@@ -51,3 +95,5 @@ T55J5 684
 KK677 28
 KTJJT 220
 QQQJA 483"""
+
+input = readInput 7
