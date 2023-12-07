@@ -4,11 +4,10 @@ import Prelude
 import Parsing (ParseError, runParser)
 import Data.Set (Set)
 import Data.Either (Either)
-import Data.List (List)
 import Parsing.String (string) as P
 import Parsing.String.Basic (intDecimal) as P
 import Parsing.Combinators (sepEndBy) as P
-import Utils.Parsing (listLinesOf, spaces) as P
+import Utils.Parsing (linesOf, spaces) as P
 import Data.Set (fromFoldable, intersection, size) as Set
 import Utils.Pointfree ((<<$>>))
 import Data.Int (pow)
@@ -16,7 +15,7 @@ import Data.Foldable as F
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Array ((..))
-import Data.List (length) as List
+import Data.Array (length) as Array
 import Input (readInput)
 
 type Card =
@@ -51,15 +50,15 @@ solve2 s = do
             toCopy
         )
         Map.empty
-    # Map.submap Nothing (Just $ List.length cards)
+    # Map.submap Nothing (Just $ Array.length cards)
     # F.sum
     # pure
 
 winnings :: Card -> Int
 winnings { winning, have } = Set.size $ Set.intersection winning have
 
-parse :: String -> Either ParseError (List Card)
-parse s = runParser s $ P.listLinesOf do
+parse :: String -> Either ParseError (Array Card)
+parse s = runParser s $ P.linesOf do
   id <- P.string "Card" *> P.spaces *> P.intDecimal <* P.string ":"
   winning <- numberSet
   _ <- P.string "|"

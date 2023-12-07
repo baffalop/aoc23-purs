@@ -11,12 +11,12 @@ import Data.Tuple (Tuple(Tuple))
 import Utils.Parsing as UP
 import Data.List.Types (List(..))
 import Data.Either (Either)
-import Data.List as L
 import Data.Foldable as F
 import Data.Ord (max)
 import Control.Apply (lift2)
 import Utils.Pointfree ((<<#>>))
 import Input (readInput)
+import Data.Array as Array
 
 type Game =
   { id :: Int
@@ -26,7 +26,7 @@ type Game =
 type Round = Map String Int
 
 solve1 = parse
-  <<#>> L.filter (_.rounds >>> F.all belowLimits)
+  <<#>> Array.filter (_.rounds >>> F.all belowLimits)
   >>> map _.id
   >>> F.sum
   where
@@ -43,8 +43,8 @@ solve2 = parse
   <<#>> map (_.rounds >>> F.foldr (lift2 max) zero >>> F.product)
   >>> F.sum
 
-parse :: String -> Either ParseError (List Game)
-parse s = runParser s $ UP.listLinesOf game
+parse :: String -> Either ParseError (Array Game)
+parse s = runParser s $ UP.linesOf game
   where
     game = do
       id <- P.string "Game " *> P.intDecimal
