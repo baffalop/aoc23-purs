@@ -67,6 +67,9 @@ instance ordJoke :: Ord WithJoker where
   compare (WithJoker J) _ = LT
   compare (WithJoker c1) (WithJoker c2) = compare c1 c2
 
+instance showJoke :: Show WithJoker where
+  show (WithJoker card) = show card
+
 type Play =
   { hand :: Array Card
   , bid :: Int
