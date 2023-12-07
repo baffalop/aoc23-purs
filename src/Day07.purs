@@ -65,6 +65,7 @@ derive newtype instance eqJoke :: Eq WithJoker
 instance ordJoke :: Ord WithJoker where
   compare (WithJoker J) (WithJoker J) = EQ
   compare (WithJoker J) _ = LT
+  compare _ (WithJoker J) = GT
   compare (WithJoker c1) (WithJoker c2) = compare c1 c2
 
 instance showJoke :: Show WithJoker where
