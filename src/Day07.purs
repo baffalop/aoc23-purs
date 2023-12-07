@@ -88,6 +88,7 @@ solve2 = parse
   >>> Array.mapWithIndex (\rank { bid } -> (rank + 1) * bid)
   >>> F.sum
   where
+    scoreWithJoker :: Array Card -> Score
     scoreWithJoker hand =
       let
         { yes: jokers, no: rest } = Array.partition (_ == J) hand
