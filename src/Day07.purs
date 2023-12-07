@@ -8,13 +8,15 @@ import Parsing.String.Basic (intDecimal) as P
 import Parsing.Combinators (choice) as P
 import Parsing.Combinators.Array (many) as P
 import Data.Either (Either)
-import Utils.Pointfree ((<<#>>))
+import Utils.Pointfree ((<<#>>), (<<$>>))
 import Data.Array as Array
 import Data.Tuple (Tuple(Tuple))
-import Utils.Map (counts)
+import Data.Map as Map
 import Data.Tuple as Tuple
 import Data.Foldable (sum) as F
 import Input (readInput)
+import Data.Maybe (fromMaybe)
+import Utils.Map as UM
 
 data Card
   = N Int
@@ -57,25 +59,46 @@ instance showScore :: Show Score where
     FourKind -> "FourKind"
     FiveKind -> "FiveKind"
 
+newtype WithJoker = WithJoker Card
+derive newtype instance eqJoke :: Eq WithJoker
+
+instance ordJoke :: Ord WithJoker where
+  compare (WithJoker J) (WithJoker J) = EQ
+  compare (WithJoker J) _ = LT
+  compare (WithJoker c1) (WithJoker c2) = compare c1 c2
+
 type Play =
   { hand :: Array Card
   , bid :: Int
   }
+
+solve2 :: String -> Either ParseError Int
+solve2 = parse
+  <<#>> Array.sortWith (\{ hand } -> Tuple (scoreWithJoker hand) $ WithJoker <$> hand)
+  >>> Array.mapWithIndex (\rank { bid } -> (rank + 1) * bid)
+  >>> F.sum
+  where
+    scoreWithJoker hand =
+      let
+        { yes: jokers, no: rest } = Array.partition (_ == J) hand
+        mostFrequent = fromMaybe J $ _.value <<$>> Map.findMax $ UM.invert $ UM.counts rest
+      in score $ (mostFrequent <$ jokers) <> rest
 
 solve1 :: String -> Either ParseError Int
 solve1 = parse
   <<#>> Array.sortWith (\{ hand } -> Tuple (score hand) hand)
   >>> Array.mapWithIndex (\rank { bid } -> (rank + 1) * bid)
   >>> F.sum
-  where
-    score hand = case Array.sort $ Array.fromFoldable $ counts hand of
-      [5] -> FiveKind
-      [1, 4] -> FourKind
-      [2, 3] -> FullHouse
-      [1, 1, 3] -> ThreeKind
-      [1, 2, 2] -> TwoPair
-      [1, 1, 1, 2] -> Pair
-      _ -> High
+
+score :: Array Card -> Score
+score hand = case Array.sort $ Array.fromFoldable $ UM.counts hand of
+  [5] -> FiveKind
+  [1, 4] -> FourKind
+  [2, 3] -> FullHouse
+  [1, 1, 3] -> ThreeKind
+  [1, 2, 2] -> TwoPair
+  [1, 1, 1, 2] -> Pair
+  _ -> High
 
 parse :: String -> Either ParseError (Array Play)
 parse s = runParser s $ P.linesOf $ { hand: _, bid: _ } <$> hand <* P.char ' ' <*> P.intDecimal
