@@ -5,10 +5,9 @@ import Parsing (ParseError, runParser)
 import Utils.Parsing (intDigit, linesOf) as P
 import Parsing.String (char) as P
 import Parsing.String.Basic (intDecimal) as P
-import Parsing.Combinators (choice, many1) as P
+import Parsing.Combinators (choice) as P
+import Parsing.Combinators.Array (many) as P
 import Data.Either (Either)
-import Data.List.NonEmpty (NonEmptyList)
-import Data.List.NonEmpty as NL
 import Utils.Pointfree ((<<#>>))
 import Data.Array as Array
 import Data.Tuple (Tuple(Tuple))
@@ -59,7 +58,7 @@ instance showScore :: Show Score where
     FiveKind -> "FiveKind"
 
 type Play =
-  { hand :: NonEmptyList Card
+  { hand :: Array Card
   , bid :: Int
   }
 
@@ -81,7 +80,7 @@ solve1 = parse
 parse :: String -> Either ParseError (Array Play)
 parse s = runParser s $ P.linesOf $ { hand: _, bid: _ } <$> hand <* P.char ' ' <*> P.intDecimal
   where
-    hand = P.many1 $ P.choice
+    hand = P.many $ P.choice
       [ N <$> P.intDigit
       , T <$ P.char 'T'
       , J <$ P.char 'J'
