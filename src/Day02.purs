@@ -44,7 +44,7 @@ solve2 = parse
   >>> F.sum
 
 parse :: String -> Either ParseError (List Game)
-parse s = runParser s $ UP.linesOf game
+parse s = runParser s $ UP.listLinesOf game
   where
     game = do
       id <- P.string "Game " *> P.intDecimal

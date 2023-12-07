@@ -8,7 +8,7 @@ import Data.List (List)
 import Parsing.String (string) as P
 import Parsing.String.Basic (intDecimal) as P
 import Parsing.Combinators (sepEndBy) as P
-import Utils.Parsing (linesOf, spaces) as P
+import Utils.Parsing (listLinesOf, spaces) as P
 import Data.Set (fromFoldable, intersection, size) as Set
 import Utils.Pointfree ((<<$>>))
 import Data.Int (pow)
@@ -59,7 +59,7 @@ winnings :: Card -> Int
 winnings { winning, have } = Set.size $ Set.intersection winning have
 
 parse :: String -> Either ParseError (List Card)
-parse s = runParser s $ P.linesOf do
+parse s = runParser s $ P.listLinesOf do
   id <- P.string "Card" *> P.spaces *> P.intDecimal <* P.string ":"
   winning <- numberSet
   _ <- P.string "|"

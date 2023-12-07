@@ -16,9 +16,17 @@ import Parsing.Combinators.Array (many1)
 import Control.Alt ((<|>))
 import Data.Array.NonEmpty (toArray) as NA
 import Parsing.Combinators (skipMany1) as P
+import Parsing.Combinators.Array (many) as PA
+import Data.Array (cons) as Array
 
-linesOf :: forall a. Parser String a -> Parser String (List a)
-linesOf p = p `sepBy` char '\n'
+listLinesOf :: forall a. Parser String a -> Parser String (List a)
+listLinesOf p = p `sepBy` char '\n'
+
+linesOf :: forall a. Parser String a -> Parser String (Array a)
+linesOf p = p `arraySepBy` char '\n'
+
+arraySepBy :: forall a b. Parser String a -> Parser String b -> Parser String (Array a)
+arraySepBy p sep = Array.cons <$> p <*> PA.many (sep *> p)
 
 word :: Parser String String
 word = takeWhile isAlpha
