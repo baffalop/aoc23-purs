@@ -8,15 +8,17 @@ import Parsing.String.Basic (intDecimal) as P
 import Parsing.Combinators (choice) as P
 import Parsing.Combinators.Array (many) as P
 import Data.Either (Either)
-import Utils.Pointfree ((<<#>>), (<<$>>))
+import Utils.Pointfree ((<<#>>))
 import Data.Array as Array
 import Data.Tuple (Tuple(Tuple))
 import Data.Map as Map
 import Data.Tuple as Tuple
 import Data.Foldable (sum) as F
 import Input (readInput)
-import Data.Maybe (fromMaybe)
 import Utils.Map as UM
+import Data.List (List(..), (:))
+import Data.List as List
+import Utils.List (sortDesc) as UL
 
 data Card
   = N Int
@@ -90,19 +92,25 @@ solve2 = parse
   where
     scoreWithJoker :: Array Card -> Score
     scoreWithJoker hand =
-      let
-        { yes: jokers, no: rest } = Array.partition (_ == J) hand
-        mostFrequent = fromMaybe J $ _.value <<$>> Map.findMax $ UM.invert $ UM.counts rest
-      in score $ (mostFrequent <$ jokers) <> rest
+      let { yes: jokers, no: rest } = Array.partition (_ == J) hand
+      in case sortedCounts rest of
+        Nil -> FiveKind
+        (most : others) -> scoreSortedCounts $ (most + Array.length jokers) : others
 
 score :: Array Card -> Score
-score hand = case Array.sort $ Array.fromFoldable $ UM.counts hand of
-  [5] -> FiveKind
-  [1, 4] -> FourKind
-  [2, 3] -> FullHouse
-  [1, 1, 3] -> ThreeKind
-  [1, 2, 2] -> TwoPair
-  [1, 1, 1, 2] -> Pair
+score = sortedCounts >>> scoreSortedCounts
+
+sortedCounts :: Array Card -> List Int
+sortedCounts = UM.counts >>> List.fromFoldable >>> UL.sortDesc
+
+scoreSortedCounts :: List Int -> Score
+scoreSortedCounts = case _ of
+  (5 : _) -> FiveKind
+  (4 : _) -> FourKind
+  (3 : 2 : _) -> FullHouse
+  (3 : _) -> ThreeKind
+  (2 : 2 : _) -> TwoPair
+  (2 : _) -> Pair
   _ -> High
 
 parse :: String -> Either ParseError (Array Play)
