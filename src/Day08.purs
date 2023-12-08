@@ -6,15 +6,21 @@ import Parsing (ParseError, Parser, parseErrorMessage, runParser)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Tuple (Tuple(..))
+import Data.Tuple as Tuple
 import Parsing.Combinators (many) as P
 import Parsing.String (char, string) as P
 import Control.Alt ((<|>))
-import Utils.Parsing (linesOf, word) as P
+import Utils.Parsing (linesOf, wordAlphaNum) as P
 import Data.Either (Either(..))
 import Data.List as List
 import Data.List (List(..), (:))
 import Data.Bifunctor (lmap)
 import Data.Maybe (Maybe(..))
+import Data.Foldable as F
+import Data.String (drop) as String
+import Utils.Pointfree ((<<$>>))
+import Data.Set (filter, mapMaybe) as Set
+import Data.Set (Set)
 
 data Step = L | R
 
@@ -36,15 +42,31 @@ solve1 s = do
     navigate :: String -> List Step -> Int -> Either String Int
     navigate "ZZZ" _ n = pure n
     navigate loc Nil n = navigate loc steps n
-    navigate loc (step : restSteps) n = case Map.lookup loc network of
-      Nothing -> Left $ "location not found: " <> loc
-      Just (Tuple left right) ->
-        let nextLoc = case step of
-          L -> left
-          R -> right
-        in navigate nextLoc restSteps (n + 1)
+    navigate loc (step : restSteps) n =
+      case follow step <$> Map.lookup loc network of
+        Nothing -> Left $ "location not found: " <> loc
+        Just nextLoc -> navigate nextLoc restSteps (n + 1)
 
   navigate "AAA" steps 0
+
+solve2 :: String -> Either String Int
+solve2 s = do
+  { steps, network } <- lmap parseErrorMessage $ parse s
+  let
+    navigate :: List Step -> Int -> Set String -> Either String Int
+    navigate Nil n locs = navigate steps n locs
+    navigate (step : restSteps) n locs
+      | F.all (endsIn "Z") locs = pure n
+      | otherwise = navigate restSteps (n + 1)
+        $ Set.mapMaybe (follow step <<$>> flip Map.lookup network) locs
+
+  navigate steps 0 $ Set.filter (endsIn "A") $ Map.keys network
+  where
+    endsIn c = String.drop 2 >>> (_ == c)
+
+follow :: forall a. Step -> Tuple a a -> a
+follow L = Tuple.fst
+follow R = Tuple.snd
 
 parse :: String -> Either ParseError Navigation
 parse s = runParser s do
@@ -55,12 +77,12 @@ parse s = runParser s do
   where
     networkParser :: Parser String Network
     networkParser = Map.fromFoldable <$> P.linesOf do
-      from <- P.word <* P.string " = ("
-      left <- P.word <* P.string ", "
-      right <- P.word <* P.char ')'
+      from <- P.wordAlphaNum <* P.string " = ("
+      left <- P.wordAlphaNum <* P.string ", "
+      right <- P.wordAlphaNum <* P.char ')'
       pure $ Tuple from $ Tuple left right
 
-example = """RL
+example1 = """RL
 
 AAA = (BBB, CCC)
 BBB = (DDD, EEE)
@@ -69,5 +91,16 @@ DDD = (DDD, DDD)
 EEE = (EEE, EEE)
 GGG = (GGG, GGG)
 ZZZ = (ZZZ, ZZZ)"""
+
+example2 = """LR
+
+11A = (11B, XXX)
+11B = (XXX, 11Z)
+11Z = (11B, XXX)
+22A = (22B, XXX)
+22B = (22C, 22C)
+22C = (22Z, 22Z)
+22Z = (22B, 22B)
+XXX = (XXX, XXX)"""
 
 input = readInput 8

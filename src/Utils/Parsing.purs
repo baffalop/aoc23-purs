@@ -1,7 +1,7 @@
 module Utils.Parsing where
 
 import Prelude
-import Data.CodePoint.Unicode (isAlpha)
+import Data.CodePoint.Unicode (isAlpha, isAlphaNum)
 import Parsing.String.Basic (digit, takeWhile)
 import Parsing (Parser, fail)
 import Parsing.Combinators (sepBy, tryRethrow)
@@ -30,6 +30,9 @@ arraySepBy p sep = Array.cons <$> p <*> PA.many (sep *> p)
 
 word :: Parser String String
 word = takeWhile isAlpha
+
+wordAlphaNum :: Parser String String
+wordAlphaNum = takeWhile isAlphaNum
 
 spaces :: Parser String Unit
 spaces = unit <$ P.skipMany1 (char ' ')
