@@ -11,8 +11,6 @@ import Data.Either (Either)
 import Utils.Pointfree ((<<#>>))
 import Data.Array as Array
 import Data.Tuple (Tuple(Tuple))
-import Data.Map as Map
-import Data.Tuple as Tuple
 import Data.Foldable (sum) as F
 import Input (readInput)
 import Utils.Map as UM
@@ -105,12 +103,12 @@ sortedCounts = UM.counts >>> List.fromFoldable >>> UL.sortDesc
 
 scoreSortedCounts :: List Int -> Score
 scoreSortedCounts = case _ of
-  (5 : _) -> FiveKind
-  (4 : _) -> FourKind
-  (3 : 2 : _) -> FullHouse
-  (3 : _) -> ThreeKind
-  (2 : 2 : _) -> TwoPair
-  (2 : _) -> Pair
+  5 : _ -> FiveKind
+  4 : _ -> FourKind
+  3 : 2 : _ -> FullHouse
+  3 : _ -> ThreeKind
+  2 : 2 : _ -> TwoPair
+  2 : _ -> Pair
   _ -> High
 
 parse :: String -> Either ParseError (Array Play)
