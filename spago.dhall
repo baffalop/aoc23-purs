@@ -28,6 +28,7 @@ to generate this file without the comments in this block.
   , "node-fs"
   , "ordered-collections"
   , "parsing"
+  , "point-free"
   , "prelude"
   , "strings"
   , "tuples"
