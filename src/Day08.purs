@@ -21,6 +21,7 @@ import Data.String (drop) as String
 import Utils.Pointfree ((<<$>>))
 import Data.Set as Set
 import Data.Set (Set)
+import Utils.Basics (mapBoth)
 
 data Step = L | R
 
@@ -75,9 +76,6 @@ remapNetwork network =
       if Map.member k shortcuts then Nothing
       else Just $ mapBoth (\dest -> Map.lookup dest shortcuts # fromMaybe dest) branch
   in remapNetwork remapped
-
-mapBoth :: forall a b f. Bifunctor f => (a -> b) -> f a a -> f b b
-mapBoth f = bimap f f
 
 follow :: forall a. Step -> Tuple a a -> a
 follow L = Tuple.fst
