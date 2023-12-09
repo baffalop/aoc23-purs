@@ -23,9 +23,9 @@ solveWith side extrapolate = parse
   >>> F.sum
 
 diffTo0 :: Array Int -> Array (Array Int)
-diffTo0 xs =
-  let deriv = derivative xs
-  in if F.all (_ == 0) deriv then [xs] else xs : diffTo0 deriv
+diffTo0 xs = xs :
+  let d = derivative xs
+  in if F.all (_ == 0) d then [] else diffTo0 d
 
 derivative :: forall a. Ring a => Array a -> Array a
 derivative xs = Array.zipWith (-) (Array.drop 1 xs) xs
