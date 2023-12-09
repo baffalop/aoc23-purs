@@ -18,7 +18,9 @@ solve2 :: String -> Maybe Int
 solve2 = solveWith Array.head $ F.foldr (-) 0
 
 solveWith :: (Array Int -> Maybe Int) -> (Array Int -> Int) -> String -> Maybe Int
-solveWith side extrapolate = parse <<#>> map (diffTo0 >>> Array.mapMaybe side >>> extrapolate) >>> F.sum
+solveWith side extrapolate = parse
+  <<#>> map (diffTo0 >>> Array.mapMaybe side >>> extrapolate)
+  >>> F.sum
 
 diffTo0 :: Array Int -> Array (Array Int)
 diffTo0 xs =
