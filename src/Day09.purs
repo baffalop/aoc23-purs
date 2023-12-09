@@ -27,11 +27,11 @@ diffTo0 xs =
   let deriv = derivative xs
   in if F.all (_ == 0) deriv then [xs] else xs : diffTo0 deriv
 
-parse :: String -> Maybe (Array (Array Int))
-parse = String.lines >>> traverse (String.words >>> traverse Int.fromString)
-
 derivative :: forall a. Ring a => Array a -> Array a
 derivative xs = Array.zipWith (-) (Array.drop 1 xs) xs
+
+parse :: String -> Maybe (Array (Array Int))
+parse = String.lines >>> traverse (String.words >>> traverse Int.fromString)
 
 example = """0 3 6 9 12 15
 1 3 6 10 15 21
