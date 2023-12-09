@@ -12,13 +12,18 @@ import Data.Array ((:))
 import Input (readInput)
 
 solve1 :: String -> Maybe Int
-solve1 = parse
-  <<#>> map (diffTo0 >>> Array.mapMaybe Array.last >>> F.sum)
-  >>> F.sum
-  where
-    diffTo0 xs =
-      let deriv = derivative xs
-      in if F.all (_ == 0) deriv then [xs] else xs : diffTo0 deriv
+solve1 = solveWith Array.last F.sum
+
+solve2 :: String -> Maybe Int
+solve2 = solveWith Array.head $ F.foldr (-) 0
+
+solveWith :: (Array Int -> Maybe Int) -> (Array Int -> Int) -> String -> Maybe Int
+solveWith side extrapolate = parse <<#>> map (diffTo0 >>> Array.mapMaybe side >>> extrapolate) >>> F.sum
+
+diffTo0 :: Array Int -> Array (Array Int)
+diffTo0 xs =
+  let deriv = derivative xs
+  in if F.all (_ == 0) deriv then [xs] else xs : diffTo0 deriv
 
 parse :: String -> Maybe (Array (Array Int))
 parse = String.lines >>> traverse (String.words >>> traverse Int.fromString)
