@@ -15,10 +15,10 @@ lines :: String -> Array String
 lines = S.split (Pattern "\n")
 
 words :: String -> Array String
-words = R.split whitespaceRegex
+words = R.split $ regexSimple "\\s+"
 
-whitespaceRegex :: Regex
-whitespaceRegex = unsafeRegex "\\s+" RF.noFlags
+regexSimple :: String -> Regex
+regexSimple = flip regexUnsafe RF.noFlags
 
-unsafeRegex :: String -> RegexFlags -> Regex
-unsafeRegex = either unsafeCrashWith identity <.. R.regex
+regexUnsafe :: String -> RegexFlags -> Regex
+regexUnsafe = either unsafeCrashWith identity <.. R.regex
