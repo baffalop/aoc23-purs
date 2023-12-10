@@ -8,7 +8,7 @@ import Data.Map (Map)
 import Data.Map as Map
 import Utils.Pointfree ((<<$>>))
 import Parsing.Combinators.Array (many) as P
-import Data.Tuple.Nested ((/\), type (/\))
+import Data.Tuple.Nested ((/\))
 import Parsing.Combinators (choice, skipMany) as P
 import Parsing.String (char) as P
 import Parsing (position) as P
@@ -24,7 +24,7 @@ import Data.Array.NonEmpty as NA
 import Data.Foldable as F
 import Input (readInput)
 
-type Coord = Int /\ Int
+type Coord = Tuple Int Int
 
 solve1 :: String -> Either String Int
 solve1 s = do
