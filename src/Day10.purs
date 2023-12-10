@@ -22,11 +22,7 @@ import Data.Bifunctor (lmap)
 import Data.Array.NonEmpty (NonEmptyArray, (:))
 import Data.Array.NonEmpty as NA
 import Data.Foldable as F
-import Control.Alt ((<|>))
 import Input (readInput)
-import Data.Foldable (class Foldable)
-import Control.Alternative (class Alternative)
-import Control.Plus (class Plus, empty)
 
 type Coord = Int /\ Int
 
@@ -42,11 +38,8 @@ solve1 s = do
         Just [next] -> follow (to : visited) next
         _ -> Nothing
 
-  route <- Either.note "No route found" $ oneOf $ follow (NA.singleton start) <$> neighbours start
+  route <- Either.note "No route found" $ F.oneOf $ follow (NA.singleton start) <$> neighbours start
   pure $ NA.length route `div` 2
-
-oneOf :: forall f m a. Foldable f => Alternative m => f (m a) -> m a
-oneOf = F.foldr (<|>) empty
 
 neighbours :: Coord -> Array Coord
 neighbours c = (c + _) <$> [north, south, east, west]
