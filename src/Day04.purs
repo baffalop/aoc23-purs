@@ -28,9 +28,8 @@ solve1 :: String -> Either ParseError Int
 solve1 =
   F.sum <<< map (score <<< winnings) <<$>> parse
   where
-    score = case _ of
-      0 -> 0
-      n -> 2 `pow` (n - 1)
+    score 0 = 0
+    score n = 2 `pow` (n - 1)
 
 solve2 :: String -> Either ParseError Int
 solve2 s = do
