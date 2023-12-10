@@ -30,8 +30,10 @@ to generate this file without the comments in this block.
   , "parsing"
   , "point-free"
   , "prelude"
+  , "profunctor-lenses"
   , "strings"
   , "tuples"
+  , "uncurried-transformers"
   , "unicode"
   ]
 , packages = ./packages.dhall
