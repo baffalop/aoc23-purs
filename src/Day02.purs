@@ -1,4 +1,5 @@
 module Day02 where
+-- Cube Conundrum
 
 import Prelude
 import Parsing (ParseError, runParser)

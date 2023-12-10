@@ -1,4 +1,5 @@
 module Day04 where
+-- Scratchcards
 
 import Prelude
 import Parsing (ParseError, runParser)

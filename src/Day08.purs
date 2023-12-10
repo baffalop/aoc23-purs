@@ -1,4 +1,5 @@
 module Day08 where
+-- Haunted Wasteland
 
 import Prelude
 import Input (readInput)

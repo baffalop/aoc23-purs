@@ -1,4 +1,5 @@
 module Day03 where
+-- Gear Ratios
 
 import Prelude
 import Data.Map (Map)

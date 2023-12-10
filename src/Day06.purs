@@ -1,4 +1,5 @@
 module Day06 where
+--
 
 import Prelude
 import Input (readInput)
