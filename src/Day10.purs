@@ -28,7 +28,6 @@ import Data.Set as Set
 import Utils.String (lines) as String
 import Data.Ord (between)
 import Data.String (length) as String
-import Control.Monad.State.Class (class MonadState)
 import Data.Foldable (class Foldable)
 import Uncurried.State (State, runState)
 import Data.Lens.Record (prop) as L
@@ -42,6 +41,10 @@ import Data.Lens.Getter (use)
 
 type Coord = Tuple Int Int
 
+type FillState =
+  { visited :: Set Coord
+  }
+
 solve1 :: String -> Either String Int
 solve1 s = do
   pipes <- lmap parseErrorMessage $ parse s
@@ -52,13 +55,8 @@ solve2 :: String -> Either String Int
 solve2 s = do
   pipes <- lmap parseErrorMessage $ parse s
   loop <- findLoop pipes
-  pure $ Set.size $ foldrState fillFrom { visited: loop } Set.empty loop
-  where
-    lines = String.lines s
-    colCount = fromMaybe 0 $ String.length <$> Array.head lines
-    outOfBounds = not <<< between (1 /\ 1) (colCount /\ Array.length lines)
-
-    fillFrom :: Coord -> Set Coord -> State { visited :: Set Coord } (Set Coord)
+  let
+    fillFrom :: Coord -> Set Coord -> State FillState (Set Coord)
     fillFrom coord enclosed = do
       branches <- traverse (fill Set.empty <<< List.singleton) $ neighbours coord
       pure $ Set.union enclosed $ F.fold $ List.catMaybes branches
@@ -74,6 +72,12 @@ solve2 s = do
           fill (Set.insert coord enclosed)
             $ List.filter (not <<< (_ `Set.member` visited))
             $ candidates <> neighbours coord
+
+  pure $ Set.size $ foldrState fillFrom { visited: loop } Set.empty loop
+  where
+    lines = String.lines s
+    colCount = fromMaybe 0 $ String.length <$> Array.head lines
+    outOfBounds = not <<< between (1 /\ 1) (colCount /\ Array.length lines)
 
 findLoop :: Map Coord (Array Coord) -> Either String (Set Coord)
 findLoop pipes = do
