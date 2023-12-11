@@ -16,10 +16,10 @@ import Data.Bifunctor (bimap)
 import Data.Map.Internal (Map)
 import Data.Map.Internal as Map
 import Data.Foldable as F
-import Data.Ord (abs)
 import Input (readInput)
 import Data.BigInt (BigInt)
 import Data.BigInt as BigInt
+import Utils.Geometry (manhattanDistance)
 
 type Coord a = Tuple a a
 
@@ -51,9 +51,6 @@ solveWith expansionFactor s =
       c1 <- coords
       c2 <- coords
       if c1 == c2 then [] else [Tuple (min c1 c2) (max c1 c2)]
-
-manhattanDistance :: forall a. Ord a => Ring a => Coord a -> Coord a -> a
-manhattanDistance c1 c2 = uncurry (+) $ mapBoth abs $ c1 - c2
 
 parse :: String -> Array (Coord Int)
 parse = String.lines
