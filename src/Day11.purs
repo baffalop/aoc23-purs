@@ -36,8 +36,8 @@ solveWith expansionFactor s =
     populatedCols = Set.fromFoldable $ fst <$> galaxies
     populatedRows = Set.fromFoldable $ snd <$> galaxies
     maxX /\ maxY = mapBoth (fromMaybe 0 <<< Set.findMax) $ populatedCols /\ populatedRows
-    emptyRows = Set.toMap $ Set.fromFoldable $ Array.filter (\x -> not $ Set.member x populatedRows) (0 .. maxX)
-    emptyCols = Set.toMap $ Set.fromFoldable $ Array.filter (\y -> not $ Set.member y populatedCols) (0 .. maxY)
+    emptyCols = Set.toMap $ Set.fromFoldable $ Array.filter (\x -> not $ Set.member x populatedCols) (0 .. maxX)
+    emptyRows = Set.toMap $ Set.fromFoldable $ Array.filter (\y -> not $ Set.member y populatedRows) (0 .. maxY)
     expandedGalaxies = bimap (expandBy emptyCols) (expandBy emptyRows) <$> galaxies
   in
   F.sum $ uncurry manhattanDistance <$> pairs expandedGalaxies
