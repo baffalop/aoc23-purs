@@ -33,7 +33,8 @@ solveWith :: Int -> String -> BigInt
 solveWith expansionFactor s =
   let
     galaxies = parse s
-    populatedCols /\ populatedRows = mapBoth (\get -> Set.fromFoldable $ get <$> galaxies) $ fst /\ snd
+    populatedCols = Set.fromFoldable $ fst <$> galaxies
+    populatedRows = Set.fromFoldable $ snd <$> galaxies
     maxX /\ maxY = mapBoth (fromMaybe 0 <<< Set.findMax) $ populatedCols /\ populatedRows
     emptyRows = Set.fromFoldable $ Array.filter (\x -> not $ Set.member x populatedRows) (0 .. maxX)
     emptyCols = Set.fromFoldable $ Array.filter (\y -> not $ Set.member y populatedCols) (0 .. maxY)
