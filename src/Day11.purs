@@ -5,10 +5,9 @@ import Prelude
 import Utils.String (allIndicesOf, lines) as String
 import Data.String.Pattern (Pattern(Pattern))
 import Data.FoldableWithIndex (foldrWithIndex)
-import Data.Tuple (Tuple, Tuple(Tuple), fst, snd, uncurry)
+import Data.Tuple (Tuple(Tuple), fst, snd, uncurry)
 import Data.Tuple.Nested ((/\))
 import Data.Set as Set
-import Data.Set (Set)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Array as Array
 import Data.Array ((..))
@@ -19,11 +18,19 @@ import Data.Map.Internal as Map
 import Data.Foldable as F
 import Data.Ord (abs)
 import Input (readInput)
+import Data.BigInt (BigInt)
+import Data.BigInt as BigInt
 
-type Coord = Tuple Int Int
+type Coord a = Tuple a a
 
-solve1 :: String -> Int
-solve1 s =
+solve1 :: String -> BigInt
+solve1 = solveWith 2
+
+solve2 :: String -> BigInt
+solve2 = solveWith 1_000_000
+
+solveWith :: Int -> String -> BigInt
+solveWith expansionFactor s =
   let
     galaxies = parse s
     populatedCols /\ populatedRows = mapBoth (\get -> Set.fromFoldable $ get <$> galaxies) $ fst /\ snd
@@ -34,19 +41,20 @@ solve1 s =
   in
   F.sum $ uncurry manhattanDistance <$> pairs expandedGalaxies
   where
-    expandBy :: Map Int Unit -> Int -> Int
-    expandBy empty coord = coord + Map.size (Map.submap Nothing (Just $ coord - 1) empty)
+    expandBy :: Map Int Unit -> Int -> BigInt
+    expandBy empty coord =
+      let emptyBefore = Map.size (Map.submap Nothing (Just $ coord - 1) empty)
+      in BigInt.fromInt $ coord + emptyBefore * (expansionFactor - 1)
 
-    pairs :: Array Coord -> Array (Tuple Coord Coord)
     pairs coords = Array.nub $ do
       c1 <- coords
       c2 <- coords
       if c1 == c2 then [] else [Tuple (min c1 c2) (max c1 c2)]
 
-manhattanDistance :: Coord -> Coord -> Int
+manhattanDistance :: forall a. Ord a => Ring a => Coord a -> Coord a -> a
 manhattanDistance c1 c2 = uncurry (+) $ mapBoth abs $ c1 - c2
 
-parse :: String -> Array Coord
+parse :: String -> Array (Coord Int)
 parse = String.lines
   >>> map (String.allIndicesOf $ Pattern "#")
   >>> foldrWithIndex (\y xs coords -> coords <> ((_ /\ y) <$> xs)) []
