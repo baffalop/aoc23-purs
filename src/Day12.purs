@@ -32,8 +32,20 @@ instance showSpring :: Show Spring where
 
 solve1 :: String -> Either ParseError Int
 solve1 = parse
-  <<#>> map (\{ springs, damaged } -> matches (toContiguous springs) damaged)
+  <<#>> map (\{ springs, damaged } -> countMatches (toContiguous springs) damaged)
   >>> F.sum
+
+solve2 :: String -> Either ParseError Int
+solve2 = parse
+  <<#>> map (\{ springs, damaged } ->
+    countMatches (toContiguous $ unfoldWith (Unknown : Nil) springs) (unfoldWith Nil damaged)
+  ) >>> F.sum
+  where
+    unfoldWith :: forall m. Monoid m => m -> m -> m
+    unfoldWith sep = Array.replicate 5 >>> Array.intercalate sep
+
+countMatches :: List (List (Tuple Spring Int)) -> List Int -> Int
+countMatches = matches
   where
     matches blocks Nil = if F.any hasDamage blocks then 0 else 1
     matches Nil _ = 0
