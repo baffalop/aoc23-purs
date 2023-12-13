@@ -1,4 +1,5 @@
 module Day13 where
+-- Point of Incidence
 
 import Prelude
 import Input (readInput)
