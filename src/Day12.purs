@@ -1,4 +1,5 @@
 module Day12 where
+-- Hot Springs
 
 import Prelude
 import Parsing (ParseError, runParser)
@@ -7,7 +8,7 @@ import Parsing.Combinators (choice, many, sepBy) as P
 import Parsing.String (char) as P
 import Parsing.String.Basic (intDecimal) as P
 import Data.Either (Either)
-import Data.Tuple (Tuple(..), snd)
+import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Array as Array
 import Data.List as List
@@ -29,24 +30,26 @@ instance showSpring :: Show Spring where
     Damaged -> "#"
     Unknown -> "?"
 
+solve1 :: String -> Either ParseError Int
 solve1 = parse
   <<#>> map (\{ springs, damaged } -> matches (toContiguous springs) damaged)
+  >>> F.sum
   where
-    matches _ Nil = 1
+    matches blocks Nil = if F.any hasDamage blocks then 0 else 1
     matches Nil _ = 0
     matches (Nil : blocks) damaged = matches blocks damaged
-    matches (block@(b@(spring /\ available) : restBlock) : restBlocks) damaged@(count : restDamaged)
-      | blockLength block < count = 0
+    matches (block@(b@(spring /\ _) : restBlock) : restBlocks) damaged@(count : restDamaged)
+      | blockLength block < count = if hasDamage block then 0 else matches restBlocks damaged
       | otherwise = case spring /\ consume count block of
         Damaged /\ Nothing -> 0
         Damaged /\ Just consumed -> matches (consumed : restBlocks) restDamaged
-        _ /\ Nothing -> matches restBlocks restDamaged
+        _ /\ Nothing -> matches (reduceBy 1 b restBlock : restBlocks) damaged
         _ /\ Just consumed ->
           matches (consumed : restBlocks) restDamaged
           + matches (reduceBy 1 b restBlock : restBlocks) damaged
 
     consume 0 Nil = Just Nil
-    consume 0 (b : rest) = Just $ reduceBy 1 b rest
+    consume 0 (b@(spring /\ _) : rest) = if spring == Damaged then Nothing else Just $ reduceBy 1 b rest
     consume _ Nil = Nothing
     consume n (b@(spring /\ count) : rest)
       | n < count = if spring == Damaged then Nothing else Just $ reduceBy (n + 1) b rest
@@ -55,6 +58,7 @@ solve1 = parse
     reduceBy n (spring /\ count) rest = if n == count then rest else (spring /\ (count - n)) : rest
 
     blockLength = F.sum <<< map snd
+    hasDamage = F.any (fst >>> (_ == Damaged))
 
 toContiguous :: forall f. Foldable f => f Spring -> List (List (Tuple Spring Int))
 toContiguous = F.foldr f { cur: Nil, res: Nil } >>> \{ cur, res } -> consIfNonempty cur res
