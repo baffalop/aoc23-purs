@@ -23,6 +23,7 @@ to generate this file without the comments in this block.
   , "foldable-traversable"
   , "integers"
   , "lists"
+  , "matrices"
   , "maybe"
   , "node-buffer"
   , "node-fs"
