@@ -19,12 +19,12 @@ import Data.Either (Either)
 import Utils.Pointfree ((<<#>>))
 import Data.Map.Internal (fromFoldableWith) as Map
 import Data.Array as Array
-import Data.Array ((..))
 import Data.Tuple (Tuple(Tuple))
 import Data.Tuple as Tuple
 import PointFree ((<..))
 import Data.Set as Set
 import Data.Foldable as F
+import Utils.Array ((../))
 
 data Terrain = Ash | Rock
 
@@ -54,7 +54,7 @@ findReflection slices = fromMaybe 0 $ F.findMap reflectionPoint reflectedPairs
     reflectionPoint (Tuple i1 i2)
       | i1 == 0 || i2 == bound =
         let refl = ((i2 - i1) `div` 2) + i1
-        in if F.all (\i -> (Tuple i $ i1 + i2 - i) `Set.member` reflectedPairs) ((i1 + 1) .. refl)
+        in if F.all (\i -> (Tuple i $ i1 + i2 - i) `Set.member` reflectedPairs) ((i1 + 1) ../ refl)
           then Just $ refl + 1 else Nothing
       | otherwise = Nothing
 
