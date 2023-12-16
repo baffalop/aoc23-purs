@@ -21,9 +21,8 @@ import Data.Map (Map)
 import Data.Map as Map
 import Data.Array as Array
 import Data.Maybe (Maybe(..), fromMaybe)
-import Control.Alt ((<|>))
 import Utils.Array ((<:))
-import Data.FoldableWithIndex (foldlWithIndex)
+import Data.FunctorWithIndex (mapWithIndex)
 
 type Instruction =
   { label :: String
@@ -61,8 +60,8 @@ solve2 = parse <<#>> foldl doInstruction Map.empty >>> focusingPower
               Array.updateAt i lens lenses
 
     focusingPower :: Map Int (Array Lens) -> Int
-    focusingPower = 0 # foldlWithIndex \box total lenses ->
-      total + foldlWithIndex (\i boxTotal { focalLength } -> boxTotal + (box + 1) * (i + 1) * focalLength) 0 lenses
+    focusingPower = F.sum <<< mapWithIndex \box ->
+      F.sum <<< mapWithIndex \i { focalLength } -> (box + 1) * (i + 1) * focalLength
 
 parse :: String -> Either ParseError (Array Instruction)
 parse s = runParser s $ instruction `arraySepBy` P.char ','
