@@ -27,6 +27,7 @@ import Data.Set as Set
 import Data.Foldable as F
 import Data.Set (Set)
 import Data.Array ((..))
+import Control.Alt ((<|>))
 
 data Terrain = Ash | Rock
 
@@ -38,24 +39,15 @@ instance showTerrain :: Show Terrain where
 
 type Pattern = Matrix Terrain
 
-invert Ash = Rock
-invert Rock = Ash
-
 solve1 :: String -> Either ParseError Int
 solve1 = parse
-  <<#>> map (\p -> 100 * findReflection (Mx.rows p) + findReflection (Mx.columns p))
+  <<#>> map (\pattern -> 100 * findReflection (Mx.rows pattern) + findReflection (Mx.columns pattern))
   >>> F.sum
 
---solve2 :: String -> Either ParseError (array)
+solve2 :: String -> Either ParseError Int
 solve2 = parse
-  <<#>> map (\pattern ->
-    case findSmudged (Mx.rows pattern) /\ findSmudged (Mx.columns pattern) of
-      Just { flipped: x /\ y, refl } /\ _ ->
-        refl * 100 + (fromMaybe 0 $ findReflection <<< Mx.columns <$> Mx.modify x y invert pattern)
-      _ /\ Just { flipped: y /\ x, refl } ->
-        refl + 100 * (fromMaybe 0 $ findReflection <<< Mx.rows <$> Mx.modify x y invert pattern)
-      _ -> 0
-  )
+  <<#>> map (\pattern -> fromMaybe 0 $ (100 * _) <$> findSmudged (Mx.rows pattern) <|> findSmudged (Mx.columns pattern))
+  >>> F.sum
   where
     findSmudged slices = F.findMap reflectionPoint oneOffPairs
       where
@@ -69,7 +61,7 @@ solve2 = parse
         reflectionPoint { i, pair: pair@(i1 /\ i2) } =
           let refl = ((i2 - i1) `div` 2) + i1
           in if F.all (\p -> p == pair || p `Set.member` matchedPairs) $ Array.zip (refl .. 0) ((refl + 1) .. bound)
-            then Just { flipped: i /\ i1, refl: refl + 1 } else Nothing
+            then Just (refl + 1) else Nothing
 
 differences :: forall a. Eq a => Array a -> Array a -> Array Int
 differences = (Array.catMaybes <<< Array.mapWithIndex \i t -> if t then Just i else Nothing) <.. Array.zipWith (/=)
