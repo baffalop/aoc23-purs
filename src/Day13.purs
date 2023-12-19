@@ -46,8 +46,9 @@ solve1 = parse
 
 solve2 :: String -> Either ParseError Int
 solve2 = parse
-  <<#>> map (\pattern -> fromMaybe 0 $ (100 * _) <$> findSmudged (Mx.rows pattern) <|> findSmudged (Mx.columns pattern))
-  >>> F.sum
+  <<#>> map (\pattern ->
+    fromMaybe 0 $ (100 * _) <$> findSmudged (Mx.rows pattern) <|> findSmudged (Mx.columns pattern)
+  ) >>> F.sum
   where
     findSmudged slices = F.findMap reflectionPoint oneOffPairs
       where
@@ -55,10 +56,10 @@ solve2 = parse
         matchedPairs = matchPairs slices
         oneOffPairs = Array.mapWithIndex { i: _, v: _ } slices # pairs
           # Array.mapMaybe \({ i: i1, v: v1 } /\ { i: i2, v: v2 }) -> case differences v1 v2 of
-            [i] -> Just { i, pair: i1 /\ i2 }
+            [_] -> Just (i1 /\ i2)
             _ -> Nothing
 
-        reflectionPoint { i, pair: pair@(i1 /\ i2) } =
+        reflectionPoint pair@(i1 /\ i2) =
           let refl = ((i2 - i1) `div` 2) + i1
           in if F.all (\p -> p == pair || p `Set.member` matchedPairs) $ Array.zip (refl .. 0) ((refl + 1) .. bound)
             then Just (refl + 1) else Nothing
