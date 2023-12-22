@@ -29,7 +29,7 @@ import Utils.String (lines) as String
 import Data.Ord (between)
 import Data.String (length) as String
 import Data.Foldable (class Foldable)
-import Uncurried.State (State, runState)
+import Uncurried.State (State)
 import Data.Lens.Record (prop) as L
 import Type.Proxy (Proxy(Proxy))
 import Data.Lens.Setter ((%~))
@@ -38,6 +38,7 @@ import Data.Traversable (traverse)
 import Data.List (List(..), (:))
 import Data.List as List
 import Data.Lens.Getter (use)
+import Utils.State (foldrState)
 
 type Coord = Tuple Int Int
 
@@ -91,9 +92,6 @@ findLoop pipes = do
         _ -> Nothing
 
   Either.note "No loop found" $ F.oneOf $ follow (NA.singleton start) <$> neighbours start
-
-foldrState :: forall f s a b. Foldable f => (a -> b -> State s b) -> s -> b -> f a -> b
-foldrState f initS initV = fst <<< F.foldr (\v (r /\ s) -> runState s $ f v r) (initV /\ initS)
 
 neighbours :: Coord -> List Coord
 neighbours c = (c + _) <$> (north : south : east : west : Nil)
