@@ -24,6 +24,9 @@ import Data.Foldable as F
 import Data.Maybe (Maybe(..), fromMaybe)
 import Input (readInput)
 import Data.Array ((..))
+import Data.FoldableWithIndex (foldlWithIndex)
+import Data.FunctorWithIndex (mapWithIndex)
+import Control.Alt ((<|>))
 
 type Vec = Tuple Int Int
 
@@ -34,24 +37,39 @@ type Plan =
 
 newtype DebugTrench = DebugTrench (Map Int (Set Int))
 
-data Approach = Inside | Outside | Adjacent
+data Approach = Inside | Outside
 derive instance eqLoc :: Eq Approach
 
-solve1 = parse
-  <<#>> buildTrench
-  >>> map (F.foldl sumXs { prev: Nothing, approach: Outside, sum: 0 } >>> _.sum)
-  >>> Array.fromFoldable
---  >>> F.sum
-  where
-    sumXs state@{ prev, approach, sum } x =
+inverse :: Approach -> Approach
+inverse Inside = Outside
+inverse Outside = Inside
+
+solve1 :: String -> Either ParseError Int
+solve1 s = do
+  trench <- buildTrench <$> parse s
+  let
+    isDug x y = fromMaybe false do
+      xs <- Map.lookup y trench
+      pure $ x `Set.member` xs
+
+    sumXs y state@{ prev, adj, approach, sum } x =
       let newState = state { prev = Just x }
       in case prev of
         Nothing -> newState { approach = Inside, sum = sum + 1 }
         Just prevX
-          | prevX == x - 1 -> newState { approach = Inside, sum = sum + 1 }
-          | otherwise -> case approach of
-            Inside -> newState { approach = Outside, sum = sum + x - prevX }
-            _ -> newState { approach = Inside, sum = sum + 1 }
+          | prevX == x - 1 -> newState { adj = adj <|> Just prevX, sum = sum + 1 }
+          | otherwise ->
+            let
+              nextState = newState { adj = Nothing }
+              correctedApproach = case adj of
+                Just adjX | isDug adjX (y + 1) == isDug prevX (y + 1) -> inverse approach
+                _ -> approach
+            in case correctedApproach of
+              Inside -> nextState { approach = Outside, sum = sum + x - prevX }
+              _ -> nextState { approach = Inside, sum = sum + 1 }
+
+  pure $ F.sum
+    $ mapWithIndex (\y -> F.foldl (sumXs y) { prev: Nothing, adj: Nothing, approach: Outside, sum: 0 } >>> _.sum) trench
 
 buildTrench :: forall f. Traversable f => f Plan -> Map Int (Set Int)
 buildTrench = scanl (\point { vec } -> point + vec) (0 /\ 0)
