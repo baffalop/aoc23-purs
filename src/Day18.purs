@@ -13,7 +13,7 @@ import Data.Tuple (Tuple(Tuple))
 import Data.Either (Either)
 import Utils.Pointfree ((<<#>>))
 import Data.Foldable (foldr)
-import Data.Traversable (scanl)
+import Data.Traversable (class Traversable, scanl)
 import Control.Bind (join)
 import Data.Array as Array
 import Data.Set as Set
@@ -21,7 +21,7 @@ import Data.Set (Set)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Foldable as F
-import Data.Maybe (fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Input (readInput)
 import Data.Array ((..))
 
@@ -34,15 +34,28 @@ type Plan =
 
 newtype DebugTrench = DebugTrench (Map Int (Set Int))
 
+data Approach = Inside | Outside | Adjacent
+derive instance eqLoc :: Eq Approach
+
 solve1 = parse
-  <<#>> scanl (\point { vec } -> point + vec) (0 /\ 0)
-  >>> foldr (\(x /\ y) -> Map.insertWith (<>) y $ Set.singleton x) (Map.singleton 0 $ Set.singleton 0)
---  >>> map (\xs -> fromMaybe 0 $ do
---    min <- Set.findMin xs
---    max <- Set.findMax xs
---    pure $ max - min + 1
---  )
+  <<#>> buildTrench
+  >>> map (F.foldl sumXs { prev: Nothing, approach: Outside, sum: 0 } >>> _.sum)
+  >>> Array.fromFoldable
 --  >>> F.sum
+  where
+    sumXs state@{ prev, approach, sum } x =
+      let newState = state { prev = Just x }
+      in case prev of
+        Nothing -> newState { approach = Inside, sum = sum + 1 }
+        Just prevX
+          | prevX == x - 1 -> newState { approach = Inside, sum = sum + 1 }
+          | otherwise -> case approach of
+            Inside -> newState { approach = Outside, sum = sum + x - prevX }
+            _ -> newState { approach = Inside, sum = sum + 1 }
+
+buildTrench :: forall f. Traversable f => f Plan -> Map Int (Set Int)
+buildTrench = scanl (\point { vec } -> point + vec) (0 /\ 0)
+  >>> foldr (\(x /\ y) -> Map.insertWith (<>) y $ Set.singleton x) (Map.singleton 0 $ Set.singleton 0)
 
 parse :: String -> Either ParseError (Array Plan)
 parse s = runParser s $ join <$> linesOf do
