@@ -5,7 +5,7 @@ import Prelude
 import Parsing (ParseError, runParser)
 import Utils.Parsing (linesOf)
 import Parsing.String.Basic (intDecimal) as P
-import Parsing.String (char, string) as P
+import Parsing.String (anyTill, char, string, takeN) as P
 import Utils.Parsing (wordAlphaNum) as P
 import Parsing.Combinators (choice) as P
 import Data.Tuple.Nested ((/\))
@@ -20,30 +20,37 @@ import Data.Set (Set)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Foldable as F
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Input (readInput)
-import Data.Array ((..), (:))
+import Data.Array ((:))
 import Utils.Basics (dup, mapBoth)
 import Data.FoldableWithIndex (foldlWithIndex)
+import Parsing (fail) as P
+import Data.Int (fromStringAs, hexadecimal) as Int
+import Data.BigInt as BigInt
+import Data.BigInt (BigInt)
 
 type Vec = Tuple Int Int
 
 type Plan =
   { vec :: Vec
   , n :: Int
-  , color :: String
   }
 
-type Segment = Tuple Int Int
+type Segment = Tuple BigInt BigInt
 
-newtype DebugTrench = DebugTrench (Map Int (Set Int))
+newtype DebugTrench = DebugTrench (Map BigInt (Set BigInt))
 
-solve1 = parse <<#>> trenchArea
+solve1 :: String -> Either ParseError BigInt
+solve1 = parse1 <<#>> trenchArea
 
-buildTrench :: forall f. Foldable f => f Plan -> { cols :: Map Int (Array Segment), rows :: Map Int (Array Segment) }
+solve2 :: String -> Either ParseError BigInt
+solve2 = parse2 <<#>> trenchArea
+
+buildTrench :: forall f. Foldable f => f Plan -> { cols :: Map BigInt (Array Segment), rows :: Map BigInt (Array Segment) }
 buildTrench = F.foldl
   (\{ coord: coord@(x1 /\ y1), trench } { vec, n } ->
-    let newCoord@(x2 /\ y2) = coord + mapBoth (n * _) vec
+    let newCoord@(x2 /\ y2) = coord + mapBoth ((BigInt.fromInt n * _) <<< BigInt.fromInt) vec
     in
     { coord: newCoord
     , trench: if y1 == y2
@@ -54,7 +61,7 @@ buildTrench = F.foldl
   { coord: zero /\ zero, trench: { rows: Map.empty, cols: Map.empty }}
   >>> _.trench
 
-trenchArea :: Array Plan -> Int
+trenchArea :: Array Plan -> BigInt
 trenchArea plan =
   let
     trench@{ cols } = buildTrench plan
@@ -77,7 +84,7 @@ trenchArea plan =
             pure $ sumSegments rows * (y - lastY - one)
           }
         )
-        { rows: [], area: 0, lastY: Nothing }
+        { rows: [], area: zero, lastY: Nothing }
   in area + sumSegments rows
 
 difference :: Array Segment -> Array Segment -> Array Segment
@@ -86,7 +93,7 @@ difference = combineWith segmentDifference
 union :: Array Segment -> Array Segment -> Array Segment
 union = combineWith segmentUnion
 
-edges :: Array Segment -> Array Int
+edges :: Array Segment -> Array BigInt
 edges segments = segments >>= \(from /\ to) -> [from - one, to + one]
 
 combineWith :: (Segment -> Segment -> Maybe (Array Segment)) -> Array Segment -> Array Segment -> Array Segment
@@ -111,7 +118,7 @@ segmentDifference s1 s2 =
   else Just $ Array.mapMaybe validate
     [ from1 /\ min (from2 - one) to1
     , max from2 (to1 + one) /\ to2
-    , (to2 + 1) /\ to1
+    , (to2 + one) /\ to1
     ]
   where
     validate s@(from /\ to) = if from > to then Nothing else Just s
@@ -125,18 +132,18 @@ segmentUnion s1 s2 =
     (from1 /\ to1) = min s1 s2
     (from2 /\ to2) = max s1 s2
 
-sumSegments :: Array Segment -> Int
-sumSegments = F.sum <<< map (\(from /\ to) -> to - from + 1)
+sumSegments :: Array Segment -> BigInt
+sumSegments = F.sum <<< map (\(from /\ to) -> to - from + one)
 
-zero = 0
-one = 1
+zero = BigInt.fromInt 0
+one = BigInt.fromInt 1
 
-parse :: String -> Either ParseError (Array Plan)
-parse s = runParser s $ linesOf do
+parse1 :: String -> Either ParseError (Array Plan)
+parse1 s = runParser s $ linesOf do
   vec <- vector <* P.char ' '
   n <- P.intDecimal <* P.char ' '
-  color <- P.string "(#" *> P.wordAlphaNum <* P.char ')'
-  pure { vec, n, color }
+  _ <- P.string "(#" *> P.wordAlphaNum <* P.char ')'
+  pure { vec, n }
   where
     vector = P.choice
       [ 0 /\ 1 <$ P.char 'D'
@@ -145,16 +152,21 @@ parse s = runParser s $ linesOf do
       , -1 /\ 0 <$ P.char 'L'
       ]
 
-instance showTrench :: Show DebugTrench where
-  show (DebugTrench trench) =
-    trench <#> (\coords ->
-      F.fold $ (\x -> if x `Set.member` coords then "#" else ".") <$> (xmin .. xmax)
-    )
-    # F.intercalate "\n"
-    where
-      allXs = F.fold trench
-      xmin = fromMaybe 0 $ Set.findMin allXs
-      xmax = fromMaybe 0 $ Set.findMax allXs
+parse2 :: String -> Either ParseError (Array Plan)
+parse2 s = runParser s $ linesOf do
+  _ <- P.anyTill $ P.char '#'
+  nHex <- P.takeN 5
+  n <- maybe (P.fail $ "Could not parse as hex: " <> nHex) pure
+    $ Int.fromStringAs Int.hexadecimal nHex
+  vec <- vector <* P.char ')'
+  pure { vec, n }
+  where
+    vector = P.choice
+      [ 1 /\ 0 <$ P.char '0'
+      , 0 /\ 1 <$ P.char '1'
+      , -1 /\ 0 <$ P.char '2'
+      , 0 /\ -1 <$ P.char '3'
+      ]
 
 example = """R 6 (#70c710)
 D 5 (#0dc571)
