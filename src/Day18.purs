@@ -6,7 +6,7 @@ import Parsing (ParseError, runParser)
 import Utils.Parsing (linesOf)
 import Parsing.String.Basic (intDecimal) as P
 import Parsing.String (anyTill, char, string, takeN) as P
-import Utils.Parsing (wordAlphaNum) as P
+import Utils.Parsing (fromMaybe, wordAlphaNum) as P
 import Parsing.Combinators (choice) as P
 import Data.Tuple.Nested ((/\))
 import Data.Tuple (Tuple(Tuple))
@@ -20,12 +20,11 @@ import Data.Set (Set)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Foldable as F
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Input (readInput)
 import Data.Array ((:))
 import Utils.Basics (dup, mapBoth)
 import Data.FoldableWithIndex (foldlWithIndex)
-import Parsing (fail) as P
 import Data.Int (fromStringAs, hexadecimal) as Int
 import Data.BigInt as BigInt
 import Data.BigInt (BigInt)
@@ -156,8 +155,7 @@ parse2 :: String -> Either ParseError (Array Plan)
 parse2 s = runParser s $ linesOf do
   _ <- P.anyTill $ P.char '#'
   nHex <- P.takeN 5
-  n <- maybe (P.fail $ "Could not parse as hex: " <> nHex) pure
-    $ Int.fromStringAs Int.hexadecimal nHex
+  n <- P.fromMaybe ("Could not parse as hex: " <> nHex) $ Int.fromStringAs Int.hexadecimal nHex
   vec <- vector <* P.char ')'
   pure { vec, n }
   where
