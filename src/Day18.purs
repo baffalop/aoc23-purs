@@ -69,8 +69,8 @@ trenchArea plan =
       # foldlWithIndex
         (\y { rows, area, lastY } newRows ->
           let
-            combinedRows = difference newRows rows
-            joints = edges combinedRows
+            rowDiff = difference newRows rows
+            joints = neighbours rowDiff
               # Array.filter (\x -> fromMaybe false
                 $ Array.any (\(from /\ to) -> from == y || to == y)
                 <$> Map.lookup x cols
@@ -78,7 +78,7 @@ trenchArea plan =
               # map dup
           in
           { lastY: Just y
-          , rows: union joints combinedRows
+          , rows: union joints rowDiff
           , area: area + sumSegments (union newRows rows) + fromMaybe zero do
             lastY <- lastY
             pure $ sumSegments rows * (y - lastY - one)
@@ -87,14 +87,16 @@ trenchArea plan =
         { rows: [], area: zero, lastY: Nothing }
   in area + sumSegments rows
 
+-- | Add segments, but overlapping segments cancel out, leaving nothing
 difference :: Array Segment -> Array Segment -> Array Segment
 difference = combineWith segmentDifference
 
+-- | Add segments, eliminating overlaps
 union :: Array Segment -> Array Segment -> Array Segment
 union = combineWith segmentUnion
 
-edges :: Array Segment -> Array BigInt
-edges segments = segments >>= \(from /\ to) -> [from - one, to + one]
+neighbours :: Array Segment -> Array BigInt
+neighbours segments = segments >>= \(from /\ to) -> [from - one, to + one]
 
 combineWith :: (Segment -> Segment -> Maybe (Array Segment)) -> Array Segment -> Array Segment -> Array Segment
 combineWith f newSegments existingSegments = F.foldr combineInto existingSegments newSegments
