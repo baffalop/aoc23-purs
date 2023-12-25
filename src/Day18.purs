@@ -26,13 +26,14 @@ import Data.Array ((:))
 import Utils.Basics (dup, mapBoth)
 import Data.FoldableWithIndex (foldlWithIndex)
 import Data.Int (fromStringAs, hexadecimal) as Int
-import Data.BigInt as BigInt
+import Data.BigInt (fromInt) as BigInt
 import Data.BigInt (BigInt)
-
-type Vec = Tuple Int Int
+import Data.Lens.Record (prop) as Lens
+import Type.Proxy (Proxy(..))
+import Data.Lens.Setter ((%~))
 
 type Plan =
-  { vec :: Vec
+  { vec :: Tuple Int Int
   , n :: Int
   }
 
@@ -52,9 +53,9 @@ buildTrench = F.foldl
     let newCoord@(x2 /\ y2) = coord + mapBoth ((BigInt.fromInt n * _) <<< BigInt.fromInt) vec
     in
     { coord: newCoord
-    , trench: if y1 == y2
-      then trench { rows = Map.insertWith (<>) y1 [min x1 x2 /\ max x1 x2] trench.rows }
-      else trench { cols = Map.insertWith (<>) x1 [min y1 y2 /\ max y1 y2] trench.cols }
+    , trench: trench # if y1 == y2
+      then rows_ %~ Map.insertWith (<>) y1 [min x1 x2 /\ max x1 x2]
+      else cols_ %~ Map.insertWith (<>) x1 [min y1 y2 /\ max y1 y2]
     }
   )
   { coord: zero /\ zero, trench: { rows: Map.empty, cols: Map.empty }}
@@ -134,9 +135,6 @@ segmentUnion s1 s2 =
 sumSegments :: Array Segment -> BigInt
 sumSegments = F.sum <<< map (\(from /\ to) -> to - from + one)
 
-zero = BigInt.fromInt 0
-one = BigInt.fromInt 1
-
 parse1 :: String -> Either ParseError (Array Plan)
 parse1 s = runParser s $ linesOf do
   vec <- vector <* P.char ' '
@@ -165,6 +163,12 @@ parse2 s = runParser s $ linesOf do
       , -1 /\ 0 <$ P.char '2'
       , 0 /\ -1 <$ P.char '3'
       ]
+
+zero = BigInt.fromInt 0
+one = BigInt.fromInt 1
+
+rows_ = Lens.prop (Proxy :: Proxy "rows")
+cols_ = Lens.prop (Proxy :: Proxy "cols")
 
 example = """R 6 (#70c710)
 D 5 (#0dc571)
