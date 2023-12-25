@@ -9,7 +9,7 @@ import Parsing.String (char, string) as P
 import Utils.Parsing (wordAlphaNum) as P
 import Parsing.Combinators (choice) as P
 import Data.Tuple.Nested ((/\))
-import Data.Tuple (Tuple(Tuple), fst)
+import Data.Tuple (Tuple(Tuple))
 import Data.Either (Either)
 import Utils.Pointfree ((<<#>>))
 import Data.Foldable (class Foldable, foldr)
@@ -62,12 +62,16 @@ trenchArea plan =
       # foldlWithIndex
         (\y { rows, area, lastY } newRows ->
           let
-            joints = unpair newRows
-              # Array.filter (\x -> Map.lookup x cols <#> Array.any (fst >>> (_ == y)) # fromMaybe false)
+            combinedRows = difference newRows rows
+            joints = edges combinedRows
+              # Array.filter (\x -> fromMaybe false
+                $ Array.any (\(from /\ to) -> from == y || to == y)
+                <$> Map.lookup x cols
+              )
               # map dup
           in
           { lastY: Just y
-          , rows: union joints $ difference newRows rows
+          , rows: union joints combinedRows
           , area: area + sumSegments (union newRows rows) + fromMaybe zero do
             lastY <- lastY
             pure $ sumSegments rows * (y - lastY - one)
@@ -81,6 +85,9 @@ difference = combineWith segmentDifference
 
 union :: Array Segment -> Array Segment -> Array Segment
 union = combineWith segmentUnion
+
+edges :: Array Segment -> Array Int
+edges segments = segments >>= \(from /\ to) -> [from - one, to + one]
 
 combineWith :: (Segment -> Segment -> Maybe (Array Segment)) -> Array Segment -> Array Segment -> Array Segment
 combineWith f newSegments existingSegments = F.foldr combineInto existingSegments newSegments
@@ -120,9 +127,6 @@ segmentUnion s1 s2 =
 
 sumSegments :: Array Segment -> Int
 sumSegments = F.sum <<< map (\(from /\ to) -> to - from + 1)
-
-unpair :: Array Segment -> Array Int
-unpair segments = segments >>= \(from /\ to) -> [from, to]
 
 zero = 0
 one = 1
