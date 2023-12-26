@@ -40,13 +40,12 @@ import Data.Lens.Getter (use)
 import Utils.State (foldrState)
 import Control.Applicative (pure)
 import Utils.Basics (mapBoth)
-import Debug (spy, spyWith) as Debug
 
 type Coord = Tuple Int Int
 
 type FillState =
   { visited :: Set Coord
-  , from :: List Coord
+  , from :: Coord
   }
 
 solve1 :: String -> Either String Int
@@ -55,6 +54,7 @@ solve1 s = do
   loop <- findLoop pipes
   pure $ NA.length loop `div` 2
 
+solve2 :: String -> Either String Int
 solve2 s = do
   rawPipes <- lmap parseErrorMessage $ parse s
   loop <- findLoop rawPipes
@@ -68,22 +68,17 @@ solve2 s = do
     surroundings :: Coord -> Maybe (List Coord)
     surroundings coord = do
       passages <- Map.lookup coord pipes
-      let continuations = join $ Array.mapMaybe (_ `Map.lookup` pipes) passages
-      pure $ diagonalNeighbours coord \\ List.fromFoldable (passages <> continuations)
+      pure $ diagonalNeighbours coord \\ List.fromFoldable passages
 
-    walk :: Coord -> Maybe (Set Coord) -> State FillState (Maybe (Set Coord))
-    walk _ Nothing = pure Nothing
-    walk coord (Just enclosed) = case surroundings coord of
+    walk :: (Coord -> Coord) -> Coord -> Maybe (Set Coord) -> State FillState (Maybe (Set Coord))
+    walk _ _ Nothing = pure Nothing
+    walk side coord (Just enclosed) = case surroundings coord of
       Nothing -> pure Nothing
       Just candidates -> do
         from <- use _from
-        let
-          _ = Debug.spyWith "coord" show coord
-          _ = Debug.spyWith "from" show from
-          toFill = Debug.spyWith "to fill" show $ contiguousWith from candidates
-        _from .= toFill
-        filled <- fill enclosed $ List.fromFoldable toFill
-        pure $ Debug.spyWith "filled" show filled
+        _from .= coord
+        let target = from + side (coord - from)
+        fill enclosed $ List.fromFoldable $ contiguousWith (target : Nil) candidates
 
     fill :: Set Coord -> List Coord -> State FillState (Maybe (Set Coord))
     fill enclosed Nil = pure $ Just enclosed
@@ -97,15 +92,16 @@ solve2 s = do
             $ List.filter (not <<< (_ `Set.member` visited))
             $ candidates <> neighbours coord
 
-  startingPoints <- Either.note "Can't prepare starting points" $ surroundings $ NA.head loop
-
-  pure $ F.findMap
-    (\start -> foldrState walk { from: start : Nil, visited: Set.fromFoldable loop } (Just Set.empty) loop)
-    startingPoints
+  [left, right]
+    # F.findMap (\side ->
+      foldrState (walk side) { from: NA.head loop, visited: Set.fromFoldable loop } (Just Set.empty) loop
+    )
+    # map Set.size
+    # Either.note "Neither side registered as inside"
   where
     lines = String.lines s
     colCount = fromMaybe 0 $ String.length <$> Array.head lines
-    outOfBounds = not <<< between (1 /\ 1) (colCount /\ Array.length lines)
+    outOfBounds = not <<< between (1 /\ 1) ((colCount + 1) /\ Array.length lines)
 
 findLoop :: Map Coord (Array Coord) -> Either String (NonEmptyArray Coord)
 findLoop pipes = do
@@ -119,6 +115,12 @@ findLoop pipes = do
         _ -> Nothing
 
   Either.note "No loop found" $ F.oneOf $ follow (NA.singleton start) <$> neighbours start
+
+left :: Coord -> Coord
+left (x /\ y) = y /\ -x
+
+right :: Coord -> Coord
+right (x /\ y) = -y /\ x
 
 neighbours :: Coord -> List Coord
 neighbours c = (c + _) <$> (north : south : east : west : Nil)
