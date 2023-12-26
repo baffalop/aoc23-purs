@@ -78,7 +78,7 @@ solve2 s = do
         from <- use _from
         _from .= coord
         let target = from + side (coord - from)
-        fill enclosed $ List.fromFoldable $ contiguousWith (target : Nil) candidates
+        fill enclosed $ List.fromFoldable $ contiguousWith target candidates
 
     fill :: Set Coord -> List Coord -> State FillState (Maybe (Set Coord))
     fill enclosed Nil = pure $ Just enclosed
@@ -129,11 +129,13 @@ diagonalNeighbours :: Coord -> List Coord
 diagonalNeighbours c =
   (c + _) <$> (north : (north + east) : east : (east + south) : south : (south + west) : west : (west + north) : Nil)
 
-contiguousWith :: List Coord -> List Coord -> List Coord
-contiguousWith neighbouring coords =
-  case List.partition (\c -> F.any (adjacent c) neighbouring) coords of
-    { yes: Nil } -> Nil
-    { yes, no } -> yes <> contiguousWith (List.nub $ yes <> neighbouring) no
+contiguousWith :: Coord -> List Coord -> List Coord
+contiguousWith target = findContiguous (target : Nil)
+  where
+    findContiguous targets coords =
+      case List.partition (\c -> F.any (adjacent c) targets) coords of
+        { yes: Nil } -> Nil
+        { yes, no } -> yes <> findContiguous (List.nub $ yes <> targets) no
 
 adjacent :: Coord -> Coord -> Boolean
 adjacent c1 c2 = uncurry (&&) $ mapBoth (abs >>> (_ <= 1)) $ c1 - c2
