@@ -58,28 +58,30 @@ solve1 s = do
 solve2 s = do
   rawPipes <- lmap parseErrorMessage $ parse s
   loop <- findLoop rawPipes
-  pipes <- Either.note "Couldn't fill starting pipe" do
-    let start = Debug.spy "start" $ NA.last loop
+  pipes <- Either.note "Can't fill starting pipe" do
+    let start = NA.last loop
     let end = NA.head loop
     prev <- loop !! (NA.length loop - 2)
     pure $ Map.insert start [prev, end] rawPipes
 
   let
+    surroundings :: Coord -> Maybe (List Coord)
+    surroundings coord = do
+      passages <- Map.lookup coord pipes
+      let continuations = join $ Array.mapMaybe (_ `Map.lookup` pipes) passages
+      pure $ diagonalNeighbours coord \\ List.fromFoldable (passages <> continuations)
+
     walk :: Coord -> Maybe (Set Coord) -> State FillState (Maybe (Set Coord))
     walk _ Nothing = pure Nothing
-    walk coord (Just enclosed) = case Map.lookup coord pipes of
+    walk coord (Just enclosed) = case surroundings coord of
       Nothing -> pure Nothing
-      Just passages -> do
+      Just candidates -> do
         from <- use _from
         let
           _ = Debug.spyWith "coord" show coord
           _ = Debug.spyWith "from" show from
---          _ = Debug.spyWith "passages" show passages
-          candidates = Debug.spyWith "candidates" show $ neighbours coord \\ List.fromFoldable passages
-          nearFrom c = F.any (adjacent c) from
-          toFill = Debug.spyWith "to fill" show if allAdjacent candidates && F.any nearFrom candidates
-            then candidates else List.filter nearFrom candidates
-        when (not $ List.null toFill) $ _from .= toFill
+          toFill = Debug.spyWith "to fill" show $ contiguousWith from candidates
+        _from .= toFill
         filled <- fill enclosed $ List.fromFoldable toFill
         pure $ Debug.spyWith "filled" show filled
 
@@ -95,20 +97,15 @@ solve2 s = do
             $ List.filter (not <<< (_ `Set.member` visited))
             $ candidates <> neighbours coord
 
-  startingPoints <- Either.note "Can't prepare starting points" do
-    let first = NA.head loop
-    passages <- Map.lookup first pipes
-    pure $ neighbours first \\ List.fromFoldable passages
+  startingPoints <- Either.note "Can't prepare starting points" $ surroundings $ NA.head loop
 
-  pure $ (\start -> foldrState walk { from: start : Nil, visited: Set.fromFoldable loop } (Just Set.empty) loop)
-    <$> startingPoints
+  pure $ F.findMap
+    (\start -> foldrState walk { from: start : Nil, visited: Set.fromFoldable loop } (Just Set.empty) loop)
+    startingPoints
   where
     lines = String.lines s
     colCount = fromMaybe 0 $ String.length <$> Array.head lines
     outOfBounds = not <<< between (1 /\ 1) (colCount /\ Array.length lines)
-
-    allAdjacent coords = F.all (\c -> F.all (adjacent c) coords) coords
-    adjacent c1 c2 = uncurry (&&) $ mapBoth (abs >>> (_ <= 1)) $ c1 - c2
 
 findLoop :: Map Coord (Array Coord) -> Either String (NonEmptyArray Coord)
 findLoop pipes = do
@@ -125,6 +122,19 @@ findLoop pipes = do
 
 neighbours :: Coord -> List Coord
 neighbours c = (c + _) <$> (north : south : east : west : Nil)
+
+diagonalNeighbours :: Coord -> List Coord
+diagonalNeighbours c =
+  (c + _) <$> (north : (north + east) : east : (east + south) : south : (south + west) : west : (west + north) : Nil)
+
+contiguousWith :: List Coord -> List Coord -> List Coord
+contiguousWith neighbouring coords =
+  case List.partition (\c -> F.any (adjacent c) neighbouring) coords of
+    { yes: Nil } -> Nil
+    { yes, no } -> yes <> contiguousWith (List.nub $ yes <> neighbouring) no
+
+adjacent :: Coord -> Coord -> Boolean
+adjacent c1 c2 = uncurry (&&) $ mapBoth (abs >>> (_ <= 1)) $ c1 - c2
 
 _visited = L.prop (Proxy :: Proxy "visited")
 _from = L.prop (Proxy :: Proxy "from")
