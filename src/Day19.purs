@@ -24,6 +24,9 @@ import Data.Maybe (Maybe(..))
 import Data.Array (mapMaybe) as Array
 import Data.Foldable (sum) as F
 import Input (readInput)
+import Control.Alt ((<|>))
+import Data.Lens.Types (Lens')
+import Data.Lens.Getter ((^.))
 
 type Process =
   { workflows :: Map Label Workflow
@@ -36,16 +39,33 @@ type Workflow =
   }
 
 type Rule =
-  { condition :: Part -> Boolean
+  { stat :: Stat
+  , comparison :: Comparison
+  , value :: Int
   , result :: Result
   }
 
-type Part =
-  { x :: Int
-  , m :: Int
-  , a :: Int
-  , s :: Int
+type Stats a =
+  { x :: a
+  , m :: a
+  , a :: a
+  , s :: a
   }
+
+type Part = Stats Int
+
+data Comparison = GT | LT
+instance showComparison :: Show Comparison where
+  show GT = ">"
+  show LT = "<"
+
+data Stat = X | M | A | S
+instance showStat :: Show Stat where
+  show = case _ of
+    X -> "x"
+    M -> "m"
+    A -> "a"
+    S -> "s"
 
 newtype Label = Label String
 derive newtype instance eqLabel :: Eq Label
@@ -63,6 +83,7 @@ instance showResult :: Show Result where
   show Reject = "R"
   show (Next label) = show label
 
+solve1 :: String -> Either String Int
 solve1 s = do
   { workflows, parts } <- lmap parseErrorMessage $ parse s
   let
@@ -82,7 +103,19 @@ processThrough :: Workflow -> Part -> Result
 processThrough { rules, fallback } part = apply rules
   where
     apply Nil = fallback
-    apply ({ condition, result } : rest) = if condition part then result else apply rest
+    apply ({ stat, comparison, value, result } : rest) =
+      let
+        test = case comparison of
+          GT -> (>)
+          LT -> (<)
+      in if (part ^. statLens stat) `test` value then result else apply rest
+
+statLens :: forall a. Stat -> Lens' (Stats a) a
+statLens = case _ of
+  X -> Lens.prop (Proxy :: Proxy "x")
+  M -> Lens.prop (Proxy :: Proxy "m")
+  A -> Lens.prop (Proxy :: Proxy "a")
+  S -> Lens.prop (Proxy :: Proxy "s")
 
 score :: Part -> Int
 score { x, m, a, s } = x + m + a + s
@@ -98,22 +131,16 @@ parse s = runParser s $ { workflows: _, parts: _ } <$> workflows <* P.char '\n' 
       pure $ Tuple label { rules, fallback }
 
     rule = do
-      category <- P.choice
-        [ _.x <$ P.char 'x'
-        , _.m <$ P.char 'm'
-        , _.a <$ P.char 'a'
-        , _.s <$ P.char 's'
+      stat <- P.choice
+        [ X <$ P.char 'x'
+        , M <$ P.char 'm'
+        , A <$ P.char 'a'
+        , S <$ P.char 's'
         ]
-      comparison <- P.choice
-        [ (<) <$ P.char '<'
-        , (>) <$ P.char '>'
-        ]
+      comparison <- LT <$ P.char '<' <|> GT <$ P.char '>'
       value <- P.intDecimal
       result <- P.char ':' *> result
-      pure
-        { condition: category >>> (_ `comparison` value)
-        , result
-        }
+      pure { stat, comparison, value, result }
 
     result = P.choice
       [ Accept <$ P.char 'A'
