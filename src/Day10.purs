@@ -65,20 +65,17 @@ solve2 s = do
     pure $ Map.insert start [prev, end] rawPipes
 
   let
-    surroundings :: Coord -> Maybe (List Coord)
-    surroundings coord = do
-      passages <- Map.lookup coord pipes
-      pure $ diagonalNeighbours coord \\ List.fromFoldable passages
-
     walk :: (Coord -> Coord) -> Coord -> Maybe (Set Coord) -> State FillState (Maybe (Set Coord))
     walk _ _ Nothing = pure Nothing
-    walk side coord (Just enclosed) = case surroundings coord of
+    walk side coord (Just enclosed) = case Map.lookup coord pipes of
       Nothing -> pure Nothing
-      Just candidates -> do
+      Just passages -> do
         from <- use _from
         _from .= coord
-        let target = from + side (coord - from)
-        fill enclosed $ List.fromFoldable $ contiguousWith target candidates
+        let
+          surroundings = diagonalNeighbours coord \\ List.fromFoldable passages
+          target = from + side (coord - from)
+        fill enclosed $ List.fromFoldable $ contiguousWith target surroundings
 
     fill :: Set Coord -> List Coord -> State FillState (Maybe (Set Coord))
     fill enclosed Nil = pure $ Just enclosed
