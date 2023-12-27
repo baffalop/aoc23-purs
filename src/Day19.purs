@@ -2,7 +2,7 @@ module Day19 where
 -- Aplenty
 
 import Prelude
-import Parsing (ParseError, runParser)
+import Parsing (ParseError, parseErrorMessage, runParser)
 import Data.Map as Map
 import Data.Map (Map)
 import Parsing.String (char) as P
@@ -11,13 +11,19 @@ import Parsing.Combinators.Array (many) as PA
 import Utils.Parsing (arraySepBy, word) as P
 import Data.Tuple (Tuple(Tuple))
 import Data.List as List
-import Data.List (List)
-import Data.Either (Either)
+import Data.List (List(..), (:))
+import Data.Either (Either(..))
 import Parsing.String.Basic (intDecimal) as P
 import Data.Lens.Record (prop) as Lens
 import Type.Proxy (Proxy(Proxy))
 import Data.Lens.Traversal (traversed)
 import Data.Lens.Setter ((%~))
+import Data.Traversable (traverse)
+import Data.Bifunctor (lmap)
+import Data.Maybe (Maybe(..))
+import Data.Array (mapMaybe) as Array
+import Data.Foldable (sum) as F
+import Input (readInput)
 
 type Process =
   { workflows :: Map Label Workflow
@@ -51,10 +57,35 @@ data Result
   | Reject
   | Next Label
 
+derive instance eqResult :: Eq Result
 instance showResult :: Show Result where
   show Accept = "A"
   show Reject = "R"
   show (Next label) = show label
+
+solve1 s = do
+  { workflows, parts } <- lmap parseErrorMessage $ parse s
+  let
+    process label part = case Map.lookup label workflows of
+      Nothing -> Left $ "Label not found: " <> show label
+      Just workflow -> case processThrough workflow part of
+        Next nextLabel -> process nextLabel part
+        result -> pure { part, result }
+
+  results <- traverse (process $ Label "in") parts
+  results
+    # Array.mapMaybe (\{ part, result } -> if result == Accept then Just $ score part else Nothing)
+    # F.sum
+    # pure
+
+processThrough :: Workflow -> Part -> Result
+processThrough { rules, fallback } part = apply rules
+  where
+    apply Nil = fallback
+    apply ({ condition, result } : rest) = if condition part then result else apply rest
+
+score :: Part -> Int
+score { x, m, a, s } = x + m + a + s
 
 parse :: String -> Either ParseError Process
 parse s = runParser s $ { workflows: _, parts: _ } <$> workflows <* P.char '\n' <*> parts
@@ -122,3 +153,5 @@ hdj{m>838:A,pv}
 {x=2036,m=264,a=79,s=2244}
 {x=2461,m=1339,a=466,s=291}
 {x=2127,m=1623,a=2188,s=1013}"""
+
+input = readInput 19
