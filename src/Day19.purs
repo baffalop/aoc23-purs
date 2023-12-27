@@ -6,7 +6,7 @@ import Parsing (ParseError, parseErrorMessage, runParser)
 import Data.Map as Map
 import Data.Map (Map)
 import Parsing.String (char) as P
-import Parsing.Combinators (choice, many) as P
+import Parsing.Combinators (choice, many, tryRethrow) as P
 import Parsing.Combinators.Array (many) as PA
 import Utils.Parsing (arraySepBy, word) as P
 import Data.Tuple (Tuple(Tuple))
@@ -92,7 +92,7 @@ parse s = runParser s $ { workflows: _, parts: _ } <$> workflows <* P.char '\n' 
   where
     workflows = Map.fromFoldable <$> PA.many do
       label <- Label <$> P.word <* P.char '{'
-      rules <- P.many $ rule <* P.char ','
+      rules <- P.many $ P.tryRethrow rule <* P.char ','
       fallback <- result <* P.char '}'
       _ <- P.char '\n'
       pure $ Tuple label { rules, fallback }
