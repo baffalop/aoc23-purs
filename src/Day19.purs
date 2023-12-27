@@ -17,16 +17,19 @@ import Parsing.String.Basic (intDecimal) as P
 import Data.Lens.Record (prop) as Lens
 import Type.Proxy (Proxy(Proxy))
 import Data.Lens.Traversal (traversed)
-import Data.Lens.Setter ((%~))
+import Data.Lens.Setter ((%~), (.~))
 import Data.Traversable (traverse)
 import Data.Bifunctor (lmap)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Array (mapMaybe) as Array
-import Data.Foldable (sum) as F
+import Data.Foldable as F
 import Input (readInput)
 import Control.Alt ((<|>))
 import Data.Lens.Types (Lens')
 import Data.Lens.Getter ((^.))
+import Data.Tuple.Nested ((/\))
+import Data.BigInt as BigInt
+import Debug (spy) as Debug
 
 type Process =
   { workflows :: Map Label Workflow
@@ -83,6 +86,9 @@ instance showResult :: Show Result where
   show Reject = "R"
   show (Next label) = show label
 
+type Range = Tuple Int Int
+type Ranges = Stats Range
+
 solve1 :: String -> Either String Int
 solve1 s = do
   { workflows, parts } <- lmap parseErrorMessage $ parse s
@@ -109,6 +115,47 @@ processThrough { rules, fallback } part = apply rules
           GT -> (>)
           LT -> (<)
       in if (part ^. statLens stat) `test` value then result else apply rest
+
+solve2 s = do
+  { workflows } <- lmap parseErrorMessage $ parse s
+  let
+    combinations label ranges = case Map.lookup label workflows of
+      Nothing -> Left $ "Label not found: " <> show label
+      Just workflow -> forWorkflow workflow ranges
+
+    forWorkflow { rules, fallback } = forRules rules
+      where
+        forRules Nil ranges = forResult fallback ranges
+        forRules ({ stat, comparison, value, result } : rest) ranges =
+          let
+            _stat = statLens stat
+            { yes, no } = partitionBy comparison value $ ranges ^. _stat
+            yesResult = maybe (pure []) (forResult result) $ yes <#> \r -> (_stat .~ r) ranges
+            noResult = maybe (pure []) (forResult result) $ no <#> \r -> (_stat .~ r) ranges
+          in (<>) <$> yesResult <*> noResult
+
+    forResult result ranges = case result of
+      Reject -> pure []
+      Accept -> pure [ranges]
+      Next label -> combinations label ranges
+
+  combinations (Label "in") { x: baseRange, m: baseRange, a: baseRange, s: baseRange }
+--  pure $ rangeCombinations <$> results
+  where
+    baseRange = 1 /\ 4000
+    rangeCombinations { x, m, a, s } = total x * total m * total a * total s
+    total (lo /\ hi) = BigInt.fromInt $ hi - lo + 1
+
+partitionBy :: Comparison -> Int -> Range -> { yes :: Maybe Range, no :: Maybe Range }
+partitionBy comparison value (lo /\ hi) = case comparison of
+  LT ->
+    { yes: if value <= lo then Nothing else Just $ lo /\ min hi (value - 1)
+    , no: if value > hi then Nothing else Just $ max lo value /\ hi
+    }
+  GT ->
+    { yes: if value >= hi then Nothing else Just $ max lo (value + 1) /\ hi
+    , no: if value < hi then Nothing else Just $ lo /\ min hi value
+    }
 
 statLens :: forall a. Stat -> Lens' (Stats a) a
 statLens = case _ of
