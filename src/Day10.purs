@@ -8,7 +8,7 @@ import Data.Map (Map)
 import Data.Map as Map
 import Utils.Pointfree ((<<$>>))
 import Parsing.Combinators.Array (many) as P
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested ((/\), type (/\))
 import Parsing.Combinators (choice, skipMany) as P
 import Parsing.String (char) as P
 import Parsing (position) as P
@@ -40,13 +40,11 @@ import Data.Lens.Getter (use)
 import Utils.State (foldrState)
 import Control.Applicative (pure)
 import Utils.Basics (mapBoth)
+import Utils.Array ((<:))
 
 type Coord = Tuple Int Int
 
-type FillState =
-  { visited :: Set Coord
-  , from :: Coord
-  }
+type FillState = { visited :: Set Coord }
 
 solve1 :: String -> Either String Int
 solve1 s = do
@@ -65,16 +63,17 @@ solve2 s = do
     pure $ Map.insert start [prev, end] rawPipes
 
   let
-    walk :: (Coord -> Coord) -> Coord -> Maybe (Set Coord) -> State FillState (Maybe (Set Coord))
+    loopArray = NA.toArray loop
+    steps = Array.zip loopArray (Array.drop 1 $ loopArray <: NA.head loop)
+
+    walk :: (Coord -> Coord) -> (Coord /\ Coord) -> Maybe (Set Coord) -> State FillState (Maybe (Set Coord))
     walk _ _ Nothing = pure Nothing
-    walk side coord (Just enclosed) = case Map.lookup coord pipes of
+    walk side (from /\ to) (Just enclosed) = case Map.lookup to pipes of
       Nothing -> pure Nothing
       Just passages -> do
-        from <- use _from
-        _from .= coord
         let
-          surroundings = diagonalNeighbours coord \\ List.fromFoldable passages
-          target = from + side (coord - from)
+          surroundings = diagonalNeighbours to \\ List.fromFoldable passages
+          target = from + side (to - from)
         fill enclosed $ List.fromFoldable $ contiguousWith target surroundings
 
     fill :: Set Coord -> List Coord -> State FillState (Maybe (Set Coord))
@@ -89,10 +88,9 @@ solve2 s = do
             $ List.filter (not <<< (_ `Set.member` visited))
             $ candidates <> neighbours coord
 
-  [left, right]
-    # F.findMap (\side ->
-      foldrState (walk side) { from: NA.head loop, visited: Set.fromFoldable loop } (Just Set.empty) loop
-    )
+  F.findMap
+    (\side -> foldrState (walk side) { visited: Set.fromFoldable loop } (Just Set.empty) steps)
+    [left, right]
     # map Set.size
     # Either.note "Neither side registered as inside"
   where
