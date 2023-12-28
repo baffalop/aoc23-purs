@@ -21,7 +21,7 @@ import Data.Lens.Setter ((%~), (.~))
 import Data.Traversable (traverse)
 import Data.Bifunctor (lmap)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Array (mapMaybe) as Array
+import Data.Array as Array
 import Data.Foldable as F
 import Input (readInput)
 import Control.Alt ((<|>))
@@ -29,7 +29,7 @@ import Data.Lens.Types (Lens')
 import Data.Lens.Getter ((^.))
 import Data.Tuple.Nested ((/\))
 import Data.BigInt as BigInt
-import Debug (spy) as Debug
+import Data.BigInt (BigInt)
 
 type Process =
   { workflows :: Map Label Workflow
@@ -116,6 +116,7 @@ processThrough { rules, fallback } part = apply rules
           LT -> (<)
       in if (part ^. statLens stat) `test` value then result else apply rest
 
+solve2 :: String -> Either String BigInt
 solve2 s = do
   { workflows } <- lmap parseErrorMessage $ parse s
   let
@@ -130,8 +131,8 @@ solve2 s = do
           let
             _stat = statLens stat
             { yes, no } = partitionBy comparison value $ ranges ^. _stat
+            noResult = maybe (pure []) (forRules rest) $ no <#> \r -> (_stat .~ r) ranges
             yesResult = maybe (pure []) (forResult result) $ yes <#> \r -> (_stat .~ r) ranges
-            noResult = maybe (pure []) (forResult result) $ no <#> \r -> (_stat .~ r) ranges
           in (<>) <$> yesResult <*> noResult
 
     forResult result ranges = case result of
@@ -139,8 +140,8 @@ solve2 s = do
       Accept -> pure [ranges]
       Next label -> combinations label ranges
 
-  combinations (Label "in") { x: baseRange, m: baseRange, a: baseRange, s: baseRange }
---  pure $ rangeCombinations <$> results
+  combos <- combinations (Label "in") { x: baseRange, m: baseRange, a: baseRange, s: baseRange }
+  pure $ F.sum $ rangeCombinations <$> combos
   where
     baseRange = 1 /\ 4000
     rangeCombinations { x, m, a, s } = total x * total m * total a * total s
@@ -154,7 +155,7 @@ partitionBy comparison value (lo /\ hi) = case comparison of
     }
   GT ->
     { yes: if value >= hi then Nothing else Just $ max lo (value + 1) /\ hi
-    , no: if value < hi then Nothing else Just $ lo /\ min hi value
+    , no: if value < lo then Nothing else Just $ lo /\ min hi value
     }
 
 statLens :: forall a. Stat -> Lens' (Stats a) a
