@@ -120,7 +120,7 @@ solve2 :: String -> Either String BigInt
 solve2 s = do
   { workflows } <- lmap parseErrorMessage $ parse s
   let
-    combinations label ranges = case Map.lookup label workflows of
+    acceptedCombinations label ranges = case Map.lookup label workflows of
       Nothing -> Left $ "Label not found: " <> show label
       Just workflow -> forWorkflow workflow ranges
 
@@ -138,13 +138,14 @@ solve2 s = do
     forResult result ranges = case result of
       Reject -> pure []
       Accept -> pure [ranges]
-      Next label -> combinations label ranges
+      Next label -> acceptedCombinations label ranges
 
-  combos <- combinations (Label "in") { x: baseRange, m: baseRange, a: baseRange, s: baseRange }
-  pure $ F.sum $ rangeCombinations <$> combos
+  combinations <- acceptedCombinations (Label "in") baseRanges
+  pure $ F.sum $ forRanges <$> combinations
   where
+    baseRanges = { x: baseRange, m: baseRange, a: baseRange, s: baseRange }
     baseRange = 1 /\ 4000
-    rangeCombinations { x, m, a, s } = total x * total m * total a * total s
+    forRanges { x, m, a, s } = total x * total m * total a * total s
     total (lo /\ hi) = BigInt.fromInt $ hi - lo + 1
 
 partitionBy :: Comparison -> Int -> Range -> { yes :: Maybe Range, no :: Maybe Range }
