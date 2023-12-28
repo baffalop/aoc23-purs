@@ -131,8 +131,8 @@ solve2 s = do
           let
             _stat = statLens stat
             { yes, no } = partitionBy comparison value $ ranges ^. _stat
-            noResult = maybe (pure []) (forRules rest) $ no <#> \r -> (_stat .~ r) ranges
-            yesResult = maybe (pure []) (forResult result) $ yes <#> \r -> (_stat .~ r) ranges
+            noResult = no # maybe (pure []) \r -> forRules rest $ (_stat .~ r) ranges
+            yesResult = yes # maybe (pure []) \r -> forResult result $ (_stat .~ r) ranges
           in (<>) <$> yesResult <*> noResult
 
     forResult result ranges = case result of
