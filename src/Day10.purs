@@ -32,7 +32,7 @@ import Data.Foldable (class Foldable)
 import Uncurried.State (State)
 import Data.Lens.Record (prop) as L
 import Type.Proxy (Proxy(Proxy))
-import Data.Lens.Setter ((%~), (.=))
+import Data.Lens.Setter ((%~))
 import Control.Monad.State.Class (modify) as State
 import Data.List (List(..), (:), (\\))
 import Data.List as List
@@ -136,7 +136,6 @@ adjacent :: Coord -> Coord -> Boolean
 adjacent c1 c2 = uncurry (&&) $ mapBoth (abs >>> (_ <= 1)) $ c1 - c2
 
 _visited = L.prop (Proxy :: Proxy "visited")
-_from = L.prop (Proxy :: Proxy "from")
 
 parse :: String -> Either ParseError (Map Coord (Array Coord))
 parse s = runParser s $ Map.fromFoldable <<< join <<$>> linesOf $ P.many do
