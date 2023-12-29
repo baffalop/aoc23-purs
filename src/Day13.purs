@@ -29,13 +29,14 @@ import Data.Set (Set)
 import Data.Array ((..))
 import Control.Alt ((<|>))
 
-data Terrain = Ash | Rock
+data Terrain = Ash | Rock | Refl -- Refl for debugging purposes
 
 derive instance eqTerrain :: Eq Terrain
 derive instance ordTerrain :: Ord Terrain
 instance showTerrain :: Show Terrain where
   show Ash = "."
   show Rock = "#"
+  show Refl = "@"
 
 type Pattern = Matrix Terrain
 
@@ -54,15 +55,19 @@ solve2 = parse
       where
         bound = Array.length slices - 1
         matchedPairs = matchPairs slices
-        oneOffPairs = Array.mapWithIndex { i: _, v: _ } slices # pairs
+        oneOffPairs = Array.mapWithIndex { i: _, v: _ } slices
+          # pairs
           # Array.mapMaybe \({ i: i1, v: v1 } /\ { i: i2, v: v2 }) -> case differences v1 v2 of
             [_] -> Just (i1 /\ i2)
             _ -> Nothing
 
-        reflectionPoint pair@(i1 /\ i2) =
-          let refl = ((i2 - i1) `div` 2) + i1
-          in if F.all (\p -> p == pair || p `Set.member` matchedPairs) $ Array.zip (refl .. 0) ((refl + 1) .. bound)
-            then Just (refl + 1) else Nothing
+        reflectionPoint pair@(i1 /\ i2)
+          -- a pair of indices whose difference is even doesn't actually lie on either side of a reflection point
+          | (i2 - i1) `mod` 2 == 0 = Nothing
+          | otherwise =
+            let refl = ((i2 - i1) `div` 2) + i1
+            in if F.all (\p -> p == pair || p `Set.member` matchedPairs) $ Array.zip (refl .. 0) ((refl + 1) .. bound)
+              then Just (refl + 1) else Nothing
 
 differences :: forall a. Eq a => Array a -> Array a -> Array Int
 differences = (Array.catMaybes <<< Array.mapWithIndex \i t -> if t then Just i else Nothing) <.. Array.zipWith (/=)
@@ -78,6 +83,13 @@ findReflection slices = fromMaybe 0 $ F.findMap reflectionPoint matchedPairs
         in if F.all (_ `Set.member` matchedPairs) $ Array.zip ((i1 + 1) .. refl) ((i2 - 1) .. (refl + 1))
           then Just $ refl + 1 else Nothing
       | otherwise = Nothing
+
+debugReflections :: Maybe Int -> Maybe Int -> Matrix Terrain -> Matrix Terrain
+debugReflections colRefl rowRefl = Mx.indexedMap \col row ter ->
+  if ter == Rock && (isColReflected col || isRowReflected row) then Refl else ter
+  where
+    isColReflected = maybe (const false) (<=) colRefl
+    isRowReflected = maybe (const false) (<=) rowRefl
 
 matchPairs :: forall a. Ord a => Array a -> Set (Tuple Int Int)
 matchPairs = Array.mapWithIndex (\i s -> Tuple s [i])
@@ -113,5 +125,51 @@ example = """#.##..##.
 #####.##.
 ..##..###
 #....#..#"""
+
+faultyExample = """..####...#.#..#
+########.......
+#......##.##.##
+##....##..#.##.
+.#.##.#.....###
+#.####.###.####
+#.####.#####..#
+##....###.#.##.
+........###.###
+#########...#..
+#########......
+
+####..###...###
+######.....##..
+######.#.#..#.#
+######.##.#.##.
+#####....#...#.
+.....#.##.###..
+....#..####.##.
+#######.##.....
+#####.##.#.#.#.
+......#..#..#..
+####.#..#.##...
+....#....#....#
+..........##...
+####..###....#.
+#..#####.#.....
+
+.#..##....#.###
+#..##.#..##.#..
+##.##.#..##.#..
+.#..##....#.###
+###.###.##.#..#
+.#..##.##..###.
+##.#.##.####...
+##.#.##.####...
+.#..##.##..###.
+###.###.##.#..#
+.#..##....#.###
+##.##.#..##.#..
+#..##.#..##.#..
+.#..##....#.###
+#.#..###..###.#
+#.###.#..#.##.#
+.##..#.#...#..#"""
 
 input = readInput 13
