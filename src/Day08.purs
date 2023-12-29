@@ -22,6 +22,8 @@ import Data.String (drop) as String
 import Utils.Pointfree ((<<$>>))
 import Data.Set (filter, mapMaybe) as Set
 import Data.Set (Set)
+import Data.Generic.Rep (class Generic)
+import Data.Show.Generic (genericShow)
 
 data Step = L | R
 
@@ -32,9 +34,8 @@ type Navigation =
 
 type Network = Map String (Tuple String String)
 
-instance showStep :: Show Step where
-  show L = "L"
-  show R = "R"
+derive instance genericStep :: Generic Step _
+instance showStep :: Show Step where show = genericShow
 
 solve1 :: String -> Either String Int
 solve1 s = do

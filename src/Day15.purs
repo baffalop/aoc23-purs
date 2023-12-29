@@ -23,6 +23,8 @@ import Data.Array as Array
 import Data.Maybe (Maybe(..), fromMaybe)
 import Utils.Array ((<:))
 import Data.FunctorWithIndex (mapWithIndex)
+import Data.Generic.Rep (class Generic)
+import Data.Show.Generic (genericShow)
 
 type Instruction =
   { label :: String
@@ -31,9 +33,8 @@ type Instruction =
 
 data Op = Remove | Place Int
 
-instance showOp :: Show Op where
-  show Remove = "Remove"
-  show (Place f) = "Place " <> show f
+derive instance genericOp :: Generic Op _
+instance showOp :: Show Op where show = genericShow
 
 type Lens =
   { label :: String

@@ -18,6 +18,8 @@ import Utils.Map as UM
 import Data.List (List(..), (:))
 import Data.List as List
 import Utils.List (sortDesc) as UL
+import Data.Generic.Rep (class Generic)
+import Data.Show.Generic (genericShow)
 
 data Card
   = N Int
@@ -29,14 +31,10 @@ data Card
 
 derive instance eqCard :: Eq Card
 derive instance ordCard :: Ord Card
+derive instance genericCard :: Generic Card _
 instance showCard :: Show Card where
-  show = case _ of
-    (N n) -> show n
-    T -> "T"
-    J -> "J"
-    Q -> "Q"
-    K -> "K"
-    A -> "A"
+  show (N n) = show n
+  show card = genericShow card
 
 data Score
   = High
@@ -49,16 +47,8 @@ data Score
 
 derive instance eqScore :: Eq Score
 derive instance ordScore :: Ord Score
-
-instance showScore :: Show Score where
-  show = case _ of
-    High -> "High"
-    Pair -> "Pair"
-    TwoPair -> "TwoPair"
-    ThreeKind -> "ThreeKind"
-    FullHouse -> "FullHouse"
-    FourKind -> "FourKind"
-    FiveKind -> "FiveKind"
+derive instance genericScore :: Generic Score _
+instance showScore :: Show Score where show = genericShow
 
 newtype WithJoker = WithJoker Card
 derive newtype instance eqJoke :: Eq WithJoker
@@ -69,8 +59,7 @@ instance ordJoke :: Ord WithJoker where
   compare _ (WithJoker J) = GT
   compare (WithJoker c1) (WithJoker c2) = compare c1 c2
 
-instance showJoke :: Show WithJoker where
-  show (WithJoker card) = show card
+derive newtype instance showJoke :: Show WithJoker
 
 type Play =
   { hand :: Array Card
