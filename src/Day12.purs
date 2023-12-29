@@ -8,13 +8,13 @@ import Parsing.Combinators (choice, many, sepBy) as P
 import Parsing.String (char) as P
 import Parsing.String.Basic (intDecimal) as P
 import Data.Either (Either)
-import Data.Tuple (Tuple(..), fst, snd)
+import Data.Tuple (Tuple, fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Array as Array
 import Data.List as List
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Utils.Pointfree ((<<#>>), (<<$>>))
+import Utils.Pointfree ((<<#>>))
 import Input (readInput)
 import Data.Foldable as F
 import Data.Foldable (class Foldable)
