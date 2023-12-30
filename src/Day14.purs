@@ -10,7 +10,7 @@ import Data.Map as Map
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested ((/\))
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Array (catMaybes) as Array
+import Data.Array as Array
 import Data.Foldable as F
 import Data.FoldableWithIndex (foldlWithIndex, foldrWithIndex)
 import Data.Set as Set
@@ -24,6 +24,7 @@ import Data.Foldable (class Foldable)
 data Rock = Round | Square
 
 derive instance eqRock :: Eq Rock
+derive instance ordRock :: Ord Rock
 instance showRock :: Show Rock where
   show Round = "O"
   show Square = "#"
@@ -37,8 +38,25 @@ data Towards = Top | Bottom
 solve1 :: String -> Int
 solve1 = parse >>> tiltRocks N >>> totalLoad
 
-solve2 = parse >>> spinCycle
+solve2 :: String -> Int
+solve2 = parse >>> findLoop >>> endState >>> totalLoad
   where
+    findLoop = loop 1 Map.empty
+      where
+        loop n previous rocks =
+          let spun = spinCycle rocks
+          in case Map.lookup spun previous of
+            Nothing -> loop (n + 1) (Map.insert spun n previous) spun
+            Just startLoop ->
+              { startLoop
+              , period: n - startLoop
+              , rocks: spun
+              }
+
+    endState { startLoop, period, rocks } =
+      let n = (1000000000 - startLoop) `mod` period
+      in pipeline (Array.replicate n spinCycle) rocks
+
     spinCycle = pipeline $ tiltRocks <$> [N, W, S, E]
 
 tiltRocks :: Dir -> Map Coord Rock -> Map Coord Rock
