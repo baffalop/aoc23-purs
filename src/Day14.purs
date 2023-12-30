@@ -2,12 +2,10 @@ module Day14 where
 -- Parabolic Reflector Dish
 
 import Prelude
-import Utils.String (lines) as String
-import Data.String.CodeUnits (toCharArray) as String
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map (Map)
 import Data.Map as Map
-import Data.Tuple (Tuple(..), fst, snd)
+import Data.Tuple (Tuple, fst, snd)
 import Data.Tuple.Nested ((/\))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Array as Array
@@ -20,6 +18,7 @@ import Data.Lens.Types (Lens')
 import Data.Lens.Getter ((^.))
 import Data.Lens.Setter ((.~))
 import Data.Foldable (class Foldable)
+import Utils.Parsing (parseGrid)
 
 data Rock = Round | Square
 
@@ -129,17 +128,10 @@ pipeline :: forall f a. Foldable f => f (a -> a) -> a -> a
 pipeline fs a = F.foldl (#) a fs
 
 parse :: String -> Map Coord Rock
-parse = String.lines
-  >>> mapWithIndex (\row ->
-    String.toCharArray >>> mapWithIndex (\col c ->
-      Tuple (col /\ row) <$> case c of
-        '#' -> Just Square
-        'O' -> Just Round
-        _ -> Nothing
-    ) >>> Array.catMaybes
-  )
-  >>> join
-  >>> Map.fromFoldable
+parse = parseGrid $ case _ of
+  '#' -> Just Square
+  'O' -> Just Round
+  _ -> Nothing
 
 example = """O....#....
 O.OO#....#
