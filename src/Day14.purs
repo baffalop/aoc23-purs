@@ -18,7 +18,7 @@ import Data.Lens.Types (Lens')
 import Data.Lens.Getter ((^.))
 import Data.Lens.Setter ((.~))
 import Data.Foldable (class Foldable)
-import Utils.Parsing (parseGrid)
+import Utils.Geometry (parseGrid)
 
 data Rock = Round | Square
 

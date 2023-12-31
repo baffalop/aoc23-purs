@@ -18,13 +18,6 @@ import Data.Array.NonEmpty (toArray) as NA
 import Parsing.Combinators (skipMany1) as P
 import Parsing.Combinators.Array (many) as PA
 import Data.Array as Array
-import Data.Tuple (Tuple(Tuple))
-import Data.Tuple.Nested ((/\))
-import Data.Map (Map)
-import Data.Map as Map
-import Data.FunctorWithIndex (mapWithIndex)
-import Data.String.CodeUnits (toCharArray) as S
-import Utils.String (lines) as S
 
 fromMaybe :: forall a. String -> Maybe a -> Parser String a
 fromMaybe failureMessage = maybe (fail failureMessage) pure
@@ -56,14 +49,3 @@ bigInt :: Parser String BigInt
 bigInt = tryRethrow do
   digits <- many1 digit <|> fail "Expected BigInt"
   fromMaybe "Expected BigInt" $ BigInt.fromString $ String.fromCharArray $ NA.toArray digits
-
-parseGrid :: forall a. Ord a => (Char -> Maybe a) -> String -> Map (Tuple Int Int) a
-parseGrid parseChar = S.lines
-  >>> mapWithIndex (\row ->
-    S.toCharArray
-    >>> mapWithIndex (\col char -> Tuple (col /\ row) <$> parseChar char)
-    >>> Array.catMaybes
-  )
-  >>> join
-  >>> Map.fromFoldable
-

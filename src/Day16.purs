@@ -2,7 +2,7 @@ module Day16 where
 -- The Floor Will Be Lava
 
 import Prelude
-import Utils.Parsing (parseGrid)
+import Utils.Geometry (parseGrid)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple)
 import Data.Map (Map)
