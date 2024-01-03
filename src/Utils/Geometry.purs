@@ -18,6 +18,12 @@ type Coord a = Tuple a a
 manhattanDistance :: forall a. Ord a => Ring a => Coord a -> Coord a -> a
 manhattanDistance c1 c2 = uncurry (+) $ mapBoth abs $ c1 - c2
 
+rotateCw :: forall a. Ring a => Coord a -> Coord a
+rotateCw (x /\ y) = -y /\ x
+
+rotateCcw :: forall a. Ring a => Coord a -> Coord a
+rotateCcw (x /\ y) = y /\ -x
+
 parseGrid :: forall a. Ord a => (Char -> Maybe a) -> String -> Map (Coord Int) a
 parseGrid parseChar = S.lines
   >>> mapWithIndex (\row ->

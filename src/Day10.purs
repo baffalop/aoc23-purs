@@ -41,6 +41,7 @@ import Utils.State (foldrState)
 import Control.Applicative (pure)
 import Utils.Basics (mapBoth)
 import Utils.Array ((<:))
+import Utils.Geometry (rotateCcw, rotateCw)
 
 type Coord = Tuple Int Int
 
@@ -112,10 +113,10 @@ findLoop pipes = do
   Either.note "No loop found" $ F.oneOf $ follow (NA.singleton start) <$> neighbours start
 
 left :: Coord -> Coord
-left (x /\ y) = y /\ -x
+left = rotateCcw
 
 right :: Coord -> Coord
-right (x /\ y) = -y /\ x
+right = rotateCw
 
 neighbours :: Coord -> List Coord
 neighbours c = (c + _) <$> (north : south : east : west : Nil)
