@@ -14,8 +14,8 @@ import Utils.String (lines) as String
 import Data.Array as Array
 import Data.String.CodeUnits (length) as String
 import Input (readInput)
-import Uncurried.State (State, evalState)
-import Control.Monad.State.Class (get, gets, modify_) as State
+import Uncurried.State (State, execState)
+import Control.Monad.State.Class (get, modify_) as State
 import Data.Foldable (for_)
 
 data Optic
@@ -42,44 +42,38 @@ type Beam =
 
 solve1 :: String -> Int
 solve1 s =
-  Set.size $ evalState Set.empty $ project { pos: -1 /\ 0, heading: 1 /\ 0 }
+  Set.size $ Set.map _.pos $ execState Set.empty $ project { pos: -1 /\ 0, heading: 1 /\ 0 }
   where
     optics = parse s
     lines = String.lines s
     maxY = Array.length lines - 1
     maxX = maybe 0 (String.length >>> (_ - 1)) $ Array.head lines
 
-    project :: Beam -> State (Set Beam) (Set Coord)
+    project :: Beam -> State (Set Beam) Unit
     project { pos, heading } = do
       let
         nextPos@(x /\ y) = pos + heading
         beam = { pos: nextPos, heading }
       if not (between 0 maxX x) || not (between 0 maxY y)
-        then resolve
+        then pure unit
         else case Map.lookup nextPos optics of
           Nothing -> advance beam
           Just MirrorNE -> advance beam { heading = reflectNE heading }
           Just MirrorNW -> advance beam { heading = reflectNW heading }
           Just SplitterV ->
-            if not $ isHoriz heading then advance beam
-              else do
-                for_ [0 /\ 1, 0 /\ -1] \h -> advance beam { heading = h }
-                resolve
+            if not (isHoriz heading) then advance beam
+            else for_ [0 /\ 1, 0 /\ -1] \h -> advance beam { heading = h }
           Just SplitterH ->
             if isHoriz heading then advance beam
-              else do
-                for_ [1 /\ 0, -1 /\ 0] \h -> advance beam { heading = h }
-                resolve
+            else for_ [1 /\ 0, -1 /\ 0] \h -> advance beam { heading = h }
 
-    advance :: Beam -> State (Set Beam) (Set Coord)
+    advance :: Beam -> State (Set Beam) Unit
     advance beam = do
       trail <- State.get
-      if Set.member beam trail then resolve else do
-        State.modify_ (Set.insert beam)
-        project beam
-
-    resolve :: State (Set Beam) (Set Coord)
-    resolve = State.gets $ Set.map _.pos
+      if Set.member beam trail then pure unit
+        else do
+          State.modify_ (Set.insert beam)
+          project beam
 
 reflectNE :: Coord -> Coord
 reflectNE coord = (if isHoriz coord then rotateCcw else rotateCw) coord
