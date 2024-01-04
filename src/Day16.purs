@@ -15,8 +15,11 @@ import Data.Array as Array
 import Data.String.CodeUnits (length) as String
 import Input (readInput)
 import Uncurried.State (State, execState)
-import Control.Monad.State.Class (get, modify_) as State
 import Data.Foldable (for_)
+import Data.Lens.Record (prop) as Lens
+import Type.Proxy (Proxy(Proxy))
+import Data.Lens.Setter ((%=))
+import Data.Lens.Getter (use) as Lens
 
 data Optic
   = MirrorNE
@@ -40,24 +43,30 @@ type Beam =
   , heading :: Coord
   }
 
+type BeamState = State { beams :: Set Beam, energised :: Set Coord } Unit
+
 solve1 :: String -> Int
 solve1 s =
-  Set.size $ Set.map _.pos $ execState Set.empty $ project { pos: -1 /\ 0, heading: 1 /\ 0 }
+  Set.size $ _.energised
+    $ execState { beams: Set.empty, energised: Set.empty }
+    $ project { pos: -1 /\ 0, heading: 1 /\ 0 }
   where
     optics = parse s
     lines = String.lines s
     maxY = Array.length lines - 1
     maxX = maybe 0 (String.length >>> (_ - 1)) $ Array.head lines
 
-    project :: Beam -> State (Set Beam) Unit
+    project :: Beam -> BeamState
     project { pos, heading } = do
       let
         nextPos@(x /\ y) = pos + heading
         beam = { pos: nextPos, heading }
       if not (between 0 maxX x) || not (between 0 maxY y)
-        then pure unit
-        else case Map.lookup nextPos optics of
-          Nothing -> advance beam
+      then pure unit
+      else do
+        _energised %= Set.insert nextPos
+        case Map.lookup nextPos optics of
+          Nothing -> project beam
           Just MirrorNE -> advance beam { heading = reflectNE heading }
           Just MirrorNW -> advance beam { heading = reflectNW heading }
           Just SplitterV ->
@@ -67,12 +76,12 @@ solve1 s =
             if isHoriz heading then advance beam
             else for_ [1 /\ 0, -1 /\ 0] \h -> advance beam { heading = h }
 
-    advance :: Beam -> State (Set Beam) Unit
+    advance :: Beam -> BeamState
     advance beam = do
-      trail <- State.get
-      if Set.member beam trail then pure unit
+      beams <- Lens.use _beams
+      if Set.member beam beams then pure unit
         else do
-          State.modify_ (Set.insert beam)
+          _beams %= Set.insert beam
           project beam
 
 reflectNE :: Coord -> Coord
@@ -91,6 +100,9 @@ parse = parseGrid $ case _ of
   '\\' -> Just MirrorNW
   '/' -> Just MirrorNE
   _ -> Nothing
+
+_beams = Lens.prop (Proxy :: Proxy "beams")
+_energised = Lens.prop (Proxy :: Proxy "energised")
 
 example = """.|...\....
 |.-.\.....
